@@ -1,13 +1,13 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Train and Register Model
-# MAGIC
+# MAGIC 
 # MAGIC The aim of this notebook is to train and register an MLFlow model to be deployed. This example uses a dataset from the UCI Machine Learning Repository available [here](https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/). This notebook has been adapted from an tutorial notebook in the Databricks documentation available [here](https://docs.databricks.com/applications/mlflow/end-to-end-example.html). The machine learning model in this notebook (called `wine_quality`) will predict the quality of Portugese "Vinho Verde" wine based on the wine's physicochemical properties.
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC ## Import and process data
 
 # COMMAND ----------
@@ -62,7 +62,6 @@ df["quality"] = (df.quality >= 7).astype(int)
 
 # COMMAND ----------
 
-
 # Split into train and test datasets
 train, test = train_test_split(df, random_state=1)
 X_train = train.drop(["quality"], axis=1)
@@ -73,11 +72,10 @@ y_test = test.quality
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC ## Build prediction model
 
 # COMMAND ----------
-
 
 search_space = {
     "max_depth": scope.int(hp.quniform("max_depth", 4, 100, 1)),
@@ -137,7 +135,7 @@ with mlflow.start_run(run_name="wine-quality-classifier"):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC ## Register and test prediction model
 
 # COMMAND ----------
@@ -172,51 +170,27 @@ pprint(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC ## Register and test outlier and drift monitoring models
 
 # COMMAND ----------
 
+import types
 
-# Define model wrapper to fit drift / outlier model and generate predictions
-class WineQualityDriftOutlierModel(BaseEstimator, TransformerMixin):
-    def __init__(self):
-        self.drift_model = None
-        self.outlier_model = None
-        self.feature_names = ["fixed_acidity", "volatile_acidity", "citric_acid", "residual_sugar", "chlorides",
-                              "free_sulfur_dioxide", "total_sulfur_dioxide", "density", "pH", "sulphates", "alcohol", "is_red"]
-
-    def fit(self, X, y=None, classes=None, **fit_params):
-        # Develop drift model using Kolmogorov-Smirnov (K-S) tests for the continuous numerical features and Chi-Squared tests for the categorical features
-        categories_per_feature = {11: 2}
-        self.drift_model = TabularDrift(
-            X, p_val=0.05, categories_per_feature=categories_per_feature)
-
-        # Develop outlier model using isolation forests
-        self.outlier_model = IForest(threshold=5)
-        self.outlier_model.fit(X)
-
-        return self
-
-    def predict(self, X, y=None, **fit_params):
-        # Calculate drift metrics
-        drift = self.drift_model.predict(X, drift_type='feature')
-
-        # Calculate outlier metrics
-        outliers = self.outlier_model.predict(X)
-
-        # Generate output
-        output = {"drift": drift, "outliers": outliers}
-
-        return output
-
-# COMMAND ----------
-
+# Define fit method to add to TabularDrift instance for compatability with sklearn Pipeline object
+def fit(self, X, y=None, classes=None, **fit_params):
+    self.x_ref = X
+    return self
 
 with mlflow.start_run(run_name="wine-quality-classifier") as run:
+    
+    # Develop drift model using Kolmogorov-Smirnov (K-S) tests for the continuous numerical features and Chi-Squared tests for the categorical features
+    categories_per_feature = {11: 2}
+    drift_model = TabularDrift(X_train.values, p_val=0.05, categories_per_feature=categories_per_feature)
+    drift_model.fit = types.MethodType(fit, drift_model)
 
-    # Create instance of drift / outlier model
-    drift_outlier_model = WineQualityDriftOutlierModel()
+    # Develop outlier model using isolation forests
+    outlier_model = IForest(threshold=5)
 
     # Define column names
     column_names = ["fixed_acidity", "volatile_acidity", "citric_acid", "residual_sugar", "chlorides",
@@ -227,55 +201,81 @@ with mlflow.start_run(run_name="wine-quality-classifier") as run:
     column_transformer = ColumnTransformer([("scaler", scaler, slice(
         0, column_names.index("is_red") - 1))], remainder="passthrough")
 
-    # Define drift / outlier model pipeline
-    drift_outlier_model_pipeline = Pipeline([
+    # Define drift pipeline
+    drift_model_pipeline = Pipeline([
         ("scaler", column_transformer),
-        ("drift_outlier_model", drift_outlier_model)
+        ("drift", drift_model)
+    ])
+
+    # Define outlier pipeline
+    outlier_model_pipeline = Pipeline([
+        ("scaler", column_transformer),
+        ("outliers", outlier_model)
     ])
 
     # Define reference data
     X_ref = X_train[column_names].values
 
-    # Fit model pipeline
-    drift_outlier_model_pipeline = drift_outlier_model_pipeline.fit(X_ref)
-
+    # Fit drift / outlier model pipelines
+    drift_model_pipeline = drift_model_pipeline.fit(X_ref)
+    outlier_model_pipeline = outlier_model_pipeline.fit(X_ref)
+    
     # Log model
     mlflow.sklearn.log_model(
-        drift_outlier_model_pipeline, "drift_outliers_model")
+        drift_model_pipeline, "drift_model")
+    mlflow.sklearn.log_model(
+        outlier_model_pipeline, "outlier_model")
 
     # End run
     mlflow.end_run()
 
 # COMMAND ----------
 
-drift_outlier_model = mlflow.register_model(
-    f"runs:/{run.info.run_id}/drift_outliers_model",
-    f"{model_name}_monitoring"
+# Register drift model to MLFlow model registry
+drift_model = mlflow.register_model(
+    f"runs:/{run.info.run_id}/drift_model",
+    f"{model_name}_drift"
 )
 
-# Load drift  / outlier model from MLFlow model registry
-drift_outlier_model_pipeline = mlflow.pyfunc.load_model(
-    f"models:/{drift_outlier_model.name}/{drift_outlier_model.version}")
+# Register outlier model to MLFlow model registry
+outlier_model = mlflow.register_model(
+    f"runs:/{run.info.run_id}/outlier_model",
+    f"{model_name}_outlier"
+)
 
 # COMMAND ----------
 
-# Define inference / test values
+# Load drift model from MLFlow model registry
+drift_model_pipeline = mlflow.sklearn.load_model(
+    f"models:/{drift_model.name}/{drift_model.version}")
+
+# Load outlier model from MLFlow model registry
+outlier_model_pipeline = mlflow.sklearn.load_model(
+    f"models:/{outlier_model.name}/{outlier_model.version}")
+
+# COMMAND ----------
+
+# Define and scale inference / test values
 X_inf = X_test[column_names].values
 
 # Generate drift  / outlier predictions
-drift_outlier_predictions = drift_outlier_model_pipeline.predict(X_inf)
+drift_model_predictions = drift_model_pipeline.predict(X_inf, drift_type="feature")
+outlier_model_predictions = outlier_model_pipeline.predict(X_inf)
 
+# Display results
 output = {
     "drift": {
-        "threshold": drift_outlier_predictions["drift"]["data"]["threshold"],
-        "is_drift": dict(zip(column_names, drift_outlier_predictions["drift"]["data"]["is_drift"])),
-        "p_value": dict(zip(column_names, drift_outlier_predictions["drift"]["data"]["p_val"]))
+        "threshold": drift_model_predictions["data"]["threshold"],
+        "is_drift": dict(zip(column_names, drift_model_predictions["data"]["is_drift"])),
+        "p_value": dict(zip(column_names, drift_model_predictions["data"]["p_val"]))
     },
     "outliers": {
-        "is_outlier": dict(zip(column_names, drift_outlier_predictions["outliers"]["data"]["is_outlier"]))
+        "is_outlier": dict(zip(column_names, outlier_model_predictions["data"]["is_outlier"]))
     }
 }
 
 pprint(output, width=120, compact=True)
 
 # COMMAND ----------
+
+
