@@ -1,17 +1,18 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Train and Register Model
-# MAGIC 
+# MAGIC
 # MAGIC The aim of this notebook is to train and register an MLFlow model to be deployed. This example uses a dataset from the UCI Machine Learning Repository available [here](https://archive.ics.uci.edu/ml/machine-learning-databases/wine-quality/). This notebook has been adapted from an tutorial notebook in the Databricks documentation available [here](https://docs.databricks.com/applications/mlflow/end-to-end-example.html). The machine learning model in this notebook (called `wine_quality`) will predict the quality of Portugese "Vinho Verde" wine based on the wine's physicochemical properties.
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Import and process data
 
 # COMMAND ----------
 
+import types
 from io import StringIO
 from pprint import pprint
 
@@ -72,7 +73,7 @@ y_test = test.quality
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Build prediction model
 
 # COMMAND ----------
@@ -135,7 +136,7 @@ with mlflow.start_run(run_name="wine-quality-classifier"):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Register and test prediction model
 
 # COMMAND ----------
@@ -170,23 +171,24 @@ pprint(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Register and test outlier and drift monitoring models
 
 # COMMAND ----------
 
-import types
 
 # Define fit method to add to TabularDrift instance for compatability with sklearn Pipeline object
 def fit(self, X, y=None, classes=None, **fit_params):
     self.x_ref = X
     return self
 
+
 with mlflow.start_run(run_name="wine-quality-classifier") as run:
-    
+
     # Develop drift model using Kolmogorov-Smirnov (K-S) tests for the continuous numerical features and Chi-Squared tests for the categorical features
     categories_per_feature = {11: 2}
-    drift_model = TabularDrift(X_train.values, p_val=0.05, categories_per_feature=categories_per_feature)
+    drift_model = TabularDrift(
+        X_train.values, p_val=0.05, categories_per_feature=categories_per_feature)
     drift_model.fit = types.MethodType(fit, drift_model)
 
     # Develop outlier model using isolation forests
@@ -219,7 +221,7 @@ with mlflow.start_run(run_name="wine-quality-classifier") as run:
     # Fit drift / outlier model pipelines
     drift_model_pipeline = drift_model_pipeline.fit(X_ref)
     outlier_model_pipeline = outlier_model_pipeline.fit(X_ref)
-    
+
     # Log model
     mlflow.sklearn.log_model(
         drift_model_pipeline, "drift_model")
@@ -259,7 +261,8 @@ outlier_model_pipeline = mlflow.sklearn.load_model(
 X_inf = X_test[column_names].values
 
 # Generate drift  / outlier predictions
-drift_model_predictions = drift_model_pipeline.predict(X_inf, drift_type="feature")
+drift_model_predictions = drift_model_pipeline.predict(
+    X_inf, drift_type="feature")
 outlier_model_predictions = outlier_model_pipeline.predict(X_inf)
 
 # Display results
@@ -277,5 +280,3 @@ output = {
 pprint(output, width=120, compact=True)
 
 # COMMAND ----------
-
-
