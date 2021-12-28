@@ -11,6 +11,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    name: Set default shell
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
