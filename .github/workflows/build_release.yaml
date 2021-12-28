@@ -35,10 +35,6 @@ jobs:
 
       - name: Package model service
         run: |
-          # Activate conda  environment
-          conda info
-          conda activate wine_quality_service_env
-
           # Configure databricks host
           export MLFLOW_TRACKING_URI=databricks
           export DATABRICKS_HOST="${{ secrets.DATABRICKS_HOST }}"
@@ -75,7 +71,7 @@ jobs:
           docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
           docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
 
-      - name: "Upload artifact"
+      - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: model-package-artifact
