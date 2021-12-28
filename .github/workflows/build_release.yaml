@@ -30,6 +30,9 @@ jobs:
 
       - name: Package model service
         run: |
+          # Activate conda  environment
+          conda activate wine_quality_service_env
+
           # Configure databricks host
           export MLFLOW_TRACKING_URI=databricks
           export DATABRICKS_HOST="${{ secrets.DATABRICKS_HOST }}"
@@ -47,7 +50,6 @@ jobs:
 
           # Package model as webservice with bentoml
           mkdir model_package
-          conda activate wine_quality_service_env
           python3 service/package_model_service.py \
             --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
             --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
