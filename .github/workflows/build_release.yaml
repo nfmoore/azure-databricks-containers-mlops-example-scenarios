@@ -1,4 +1,4 @@
-name: Build 
+name: Build
 
 on:
   push:
@@ -18,10 +18,8 @@ jobs:
       - name: Azure login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Setup python environment
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -38,9 +36,9 @@ jobs:
           export DATABRICKS_TOKEN="${{ secrets.DATABRICKS_TOKEN }}"
 
           # Get artifact URIs
-          PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json")
-          DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json")
-          OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json")
+          PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)
+          DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)
+          OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)
 
           # Download model artifacts from databricks
           PREDICTION_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $PREDICTION_MODEL_ARTIFACT_URI)
