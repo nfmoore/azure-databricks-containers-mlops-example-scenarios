@@ -12,7 +12,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    name: Set default shell
     defaults:
       run:
         shell: bash -l {0}
@@ -63,15 +62,18 @@ jobs:
             --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
             --package-path model_package
 
-      - name: Build and push image
-        uses: azure/CLI@v1
+      - name: ACR login
+        uses: azure/docker-login@v1
         with:
-          azcliversion: 2.30.0
-          inlineScript: |
-            docker build -t wine_quality_service ./model_package
-            az configure --defaults acr=${{ secrets.CONTAINER_REGISTRY_NAME }}
-            docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
-            docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+          login-server: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+
+      - name: Build and push image
+        run: |
+          docker build -t wine_quality_service ./model_package
+          docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
 
       - name: "Upload artifact"
         uses: actions/upload-artifact@v2
