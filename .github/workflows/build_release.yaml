@@ -99,25 +99,12 @@ jobs:
           namespace: ml-services
           arguments: --force true
 
-      - name: Deploy ingress-nginx controller
-        run: |
-          # helm upgrade --install ingress-nginx ingress-nginx \
-          #   --repo https://kubernetes.github.io/ingress-nginx \
-          #   --namespace ml-services --create-namespace
-
-          # Add the ingress-nginx repository
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-
-          # Use Helm to deploy an NGINX ingress controller
-          helm install nginx-ingress ingress-nginx/ingress-nginx \
-              --namespace ml-services --create-namespace \
-              --set controller.replicaCount=2
-
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v1
         with:
           manifests: |
             manifests/wine-quality-service.yaml
+            manifests/nginx-ingress.yaml
           images: |
             ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
           imagepullsecrets: |
