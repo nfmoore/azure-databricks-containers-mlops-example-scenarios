@@ -101,13 +101,15 @@ jobs:
 
       - name: Download ingress-nginx manifest
         run: |
-          curl -fsSL -o manifests/ingress-nginx.yaml https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/cloud/deploy.yaml
+          # curl -fsSL -o manifests/ingress-nginx.yaml https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/cloud/deploy.yaml
+          helm upgrade --install ingress-nginx ingress-nginx \
+            --repo https://kubernetes.github.io/ingress-nginx \
+            --namespace ${{ secrets.KUBERNETES_NAMESPACE }} --create-namespace
 
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v1
         with:
           manifests: |
-            manifests/ingress-nginx.yaml
             manifests/wine-quality-service.yaml
           images: |
             ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
