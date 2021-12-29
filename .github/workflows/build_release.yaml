@@ -26,38 +26,38 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Setup python environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: wine_quality_service_env
-          environment-file: service/environment.yaml
-          python-version: 3.8
-          auto-activate-base: false
+      # - name: Setup python environment
+      #   uses: conda-incubator/setup-miniconda@v2
+      #   with:
+      #     activate-environment: wine_quality_service_env
+      #     environment-file: service/environment.yaml
+      #     python-version: 3.8
+      #     auto-activate-base: false
 
-      - name: Package model service
-        run: |
-          # Configure databricks host
-          export MLFLOW_TRACKING_URI=databricks
-          export DATABRICKS_HOST="${{ secrets.DATABRICKS_HOST }}"
-          export DATABRICKS_TOKEN="${{ secrets.DATABRICKS_TOKEN }}"
+      # - name: Package model service
+      #   run: |
+      #     # Configure databricks host
+      #     export MLFLOW_TRACKING_URI=databricks
+      #     export DATABRICKS_HOST="${{ secrets.DATABRICKS_HOST }}"
+      #     export DATABRICKS_TOKEN="${{ secrets.DATABRICKS_TOKEN }}"
 
-          # Get artifact URIs
-          PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)
-          DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)
-          OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)
+      #     # Get artifact URIs
+      #     PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)
+      #     DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)
+      #     OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)
 
-          # Download model artifacts from databricks
-          PREDICTION_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $PREDICTION_MODEL_ARTIFACT_URI)
-          DRIFT_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $DRIFT_MODEL_ARTIFACT_URI)
-          OUTLIER_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $OUTLIER_MODEL_ARTIFACT_URI)
+      #     # Download model artifacts from databricks
+      #     PREDICTION_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $PREDICTION_MODEL_ARTIFACT_URI)
+      #     DRIFT_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $DRIFT_MODEL_ARTIFACT_URI)
+      #     OUTLIER_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $OUTLIER_MODEL_ARTIFACT_URI)
 
-          # Package model as webservice with bentoml
-          mkdir model_package
-          python3 service/package_model_service.py \
-            --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
-            --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
-            --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
-            --package-path model_package
+      #     # Package model as webservice with bentoml
+      #     mkdir model_package
+      #     python3 service/package_model_service.py \
+      #       --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
+      #       --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
+      #       --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
+      #       --package-path model_package
 
       - name: ACR login
         uses: azure/docker-login@v1
@@ -66,14 +66,47 @@ jobs:
           username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
           password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
-      - name: Build and push image
-        run: |
-          docker build -t wine_quality_service ./model_package
-          docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
-          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+      # - name: Build and push image
+      #   run: |
+      #     docker build -t wine_quality_service ./model_package
+      #     docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+      #     docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: model-package-artifact
           path: model_package
+
+      - name: Set target Kubernetes cluster
+        uses: azure/aks-set-context@v1
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+          cluster-name: ${{ env.KUBERNETES_NAME }}
+          resource-group: ${{ env.KUBERNETES_RESOURCE_GROUP }}
+
+      - name: Create Kubernetes namespace
+        run: |
+          kubectl create namespace ${{ secrets.KUBERNETES_NAMESPACE }} --dry-run -o json | kubectl apply -f -
+
+      - name: Create image pull secret for ACR
+        uses: azure/k8s-create-secret@v1
+        with:
+          container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
+          container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+          secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
+          arguments: --force true
+
+      - name: Deploy to AKS
+        uses: azure/k8s-deploy@v1
+        with:
+          manifests: |
+            https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/cloud/deploy.yaml
+            templates/manifest.yaml
+          images: |
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+          imagepullsecrets: |
+            ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
