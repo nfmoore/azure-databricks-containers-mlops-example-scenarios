@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+
+---
 # Source: ingress-nginx/templates/controller-serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -10,7 +19,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx
-
+  namespace: ml-services
 automountServiceAccountToken: true
 ---
 # Source: ingress-nginx/templates/controller-configmap.yaml
@@ -25,7 +34,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx-controller
-
+  namespace: ml-services
 data:
   allow-snippet-annotations: "true"
 ---
@@ -129,6 +138,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx
+  namespace: ml-services
 rules:
   - apiGroups:
       - ""
@@ -212,7 +222,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx
-
+  namespace: ml-services
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -220,6 +230,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: ingress-nginx
+    namespace: ml-services
 ---
 # Source: ingress-nginx/templates/controller-service-webhook.yaml
 apiVersion: v1
@@ -233,7 +244,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx-controller-admission
-
+  namespace: ml-services
 spec:
   type: ClusterIP
   ports:
@@ -259,7 +270,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx-controller
-
+  namespace: ml-services
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
@@ -294,7 +305,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: ingress-nginx-controller
-
+  namespace: ml-services
 spec:
   selector:
     matchLabels:
@@ -409,6 +420,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/component: controller
   name: nginx
+  namespace: ml-services
 spec:
   controller: k8s.io/ingress-nginx
 ---
@@ -445,15 +457,16 @@ webhooks:
       - v1
     clientConfig:
       service:
+        namespace: ml-services
         name: ingress-nginx-controller-admission
         path: /networking/v1/ingresses
-        namespace: ml-services
 ---
 # Source: ingress-nginx/templates/admission-webhooks/job-patch/serviceaccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ingress-nginx-admission
+  namespace: ml-services
   annotations:
     helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
@@ -511,13 +524,14 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: ingress-nginx-admission
-
+    namespace: ml-services
 ---
 # Source: ingress-nginx/templates/admission-webhooks/job-patch/role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: ingress-nginx-admission
+  namespace: ml-services
   annotations:
     helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
@@ -542,6 +556,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: ingress-nginx-admission
+  namespace: ml-services
   annotations:
     helm.sh/hook: pre-install,pre-upgrade,post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
@@ -559,13 +574,14 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: ingress-nginx-admission
-
+    namespace: ml-services
 ---
 # Source: ingress-nginx/templates/admission-webhooks/job-patch/job-createSecret.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: ingress-nginx-admission-create
+  namespace: ml-services
   annotations:
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
@@ -617,6 +633,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: ingress-nginx-admission-patch
+  namespace: ml-services
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
