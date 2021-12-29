@@ -447,6 +447,7 @@ webhooks:
       service:
         name: ingress-nginx-controller-admission
         path: /networking/v1/ingresses
+        namespace: ml-services
 ---
 # Source: ingress-nginx/templates/admission-webhooks/job-patch/serviceaccount.yaml
 apiVersion: v1
