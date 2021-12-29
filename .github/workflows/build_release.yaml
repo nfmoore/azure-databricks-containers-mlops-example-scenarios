@@ -82,8 +82,8 @@ jobs:
         uses: azure/aks-set-context@v1
         with:
           creds: "${{ secrets.AZURE_CREDENTIALS }}"
-          cluster-name: ${{ env.KUBERNETES_NAME }}
-          resource-group: ${{ env.KUBERNETES_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.KUBERNETES_NAME }}
+          resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create Kubernetes namespace
         run: |
