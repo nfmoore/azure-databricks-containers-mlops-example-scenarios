@@ -104,10 +104,9 @@ jobs:
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 
           # Use Helm to deploy an NGINX ingress controller
-          helm upgrade nginx-ingress ingress-nginx/ingress-nginx \
+          helm upgrade --install nginx-ingress ingress-nginx/ingress-nginx \
               --namespace ml-services --create-namespace \
               --set controller.replicaCount=2 \
-              --set controller.nodeSelector."kubernetes\.io/os"=linux
 
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v1
