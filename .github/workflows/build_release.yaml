@@ -87,7 +87,7 @@ jobs:
 
       - name: Create Kubernetes namespace
         run: |
-          kubectl create namespace ${{ secrets.KUBERNETES_NAMESPACE }} --dry-run -o json | kubectl apply -f -
+          kubectl create namespace ml-services --dry-run -o json | kubectl apply -f -
 
       - name: Create image pull secret for ACR
         uses: azure/k8s-create-secret@v1
@@ -96,15 +96,14 @@ jobs:
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
-          namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
+          namespace: ml-services
           arguments: --force true
 
-      - name: Download ingress-nginx manifest
+      - name: Deploy ingress-nginx controller
         run: |
-          # curl -fsSL -o manifests/ingress-nginx.yaml https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/cloud/deploy.yaml
           helm upgrade --install ingress-nginx ingress-nginx \
             --repo https://kubernetes.github.io/ingress-nginx \
-            --namespace ${{ secrets.KUBERNETES_NAMESPACE }} --create-namespace
+            --namespace ml-services --create-namespace
 
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v1
@@ -115,4 +114,4 @@ jobs:
             ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
           imagepullsecrets: |
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
-          namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
+          namespace: ml-services
