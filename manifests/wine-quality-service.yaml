@@ -29,7 +29,7 @@ spec:
         app: wine-quality-service
     spec:
       containers:
-        - image: crbkubuv001.azurecr.io/wine_quality_service:latest
+        - image: crealg5u001.azurecr.io/wine_quality_service
           imagePullPolicy: Always
           name: wine-quality-service
           ports:

@@ -99,12 +99,16 @@ jobs:
           namespace: ${{ secrets.KUBERNETES_NAMESPACE }}
           arguments: --force true
 
+      - name: Download ingress-nginx manifest
+        run: |
+          curl -fsSL -o manifests/ingress-nginx.yaml https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/cloud/deploy.yaml
+
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v1
         with:
           manifests: |
-            https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.0/deploy/static/provider/cloud/deploy.yaml
-            templates/manifest.yaml
+            manifests/ingress-nginx.yaml
+            manifests/wine-quality-service.yaml
           images: |
             ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
           imagepullsecrets: |
