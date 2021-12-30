@@ -72,7 +72,7 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t ${{ env.PROJECT_NAME }} ./model_package
+          docker build -t ${{ env.PROJECT_NAME }} artifacts/model_package
           docker tag ${{ env.PROJECT_NAME }} ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
           docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
 
