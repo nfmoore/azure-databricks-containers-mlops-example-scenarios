@@ -14,7 +14,7 @@ spec:
         app: wine-quality-service
     spec:
       containers:
-        - image: crcrbjmh001.azurecr.io/wine_quality_service:cd5f4be512b9e5441deb796d3eb508a23a184a75
+        - image: crdvo7fa001.azurecr.io/wine_quality_service
           imagePullPolicy: Always
           name: wine-quality-service
           ports:

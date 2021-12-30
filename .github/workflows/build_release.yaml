@@ -72,7 +72,7 @@ jobs:
           docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
           docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
 
-      - name: Upload artifact
+      - name: Upload model package artifact
         uses: actions/upload-artifact@v2
         with:
           name: model-package-artifact
@@ -81,8 +81,17 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    needs: build
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Set target Kubernetes cluster
         uses: azure/aks-set-context@v1
         with:
