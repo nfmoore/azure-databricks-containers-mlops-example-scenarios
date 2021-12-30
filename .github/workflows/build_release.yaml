@@ -78,6 +78,11 @@ jobs:
           name: model-package-artifact
           path: model_package
 
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Set target Kubernetes cluster
         uses: azure/aks-set-context@v1
         with:
