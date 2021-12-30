@@ -32,7 +32,7 @@ jobs:
       - name: Setup python environment
         uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: ${{PROJECT_NAME}}_env
+          activate-environment: ${{ env.PROJECT_NAME }}_env
           environment-file: service/environment.yaml
           python-version: 3.8
           auto-activate-base: false
@@ -72,13 +72,13 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t ${{PROJECT_NAME}} ./model_package
-          docker tag ${{PROJECT_NAME}} ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
-          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
+          docker build -t ${{ env.PROJECT_NAME }} ./model_package
+          docker tag ${{ env.PROJECT_NAME }} ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
+          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
 
       - name: Update Kubernetes manifest file
         run: |
-          export IMAGE_NAME=${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}
+          export IMAGE_NAME=${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}
           export IMAGE_TAG=${{ github.sha }}
           envsubst < manifests/wine-quality-service.yaml > artifacts/manifest.yaml
 
@@ -129,7 +129,7 @@ jobs:
           manifests: |
             artifacts/manifest.yaml
           images: |
-            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
           imagepullsecrets: |
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
@@ -175,7 +175,7 @@ jobs:
           manifests: |
             artifacts/manifest.yaml
           images: |
-            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
           imagepullsecrets: |
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
