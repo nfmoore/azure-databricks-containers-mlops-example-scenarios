@@ -61,7 +61,7 @@ jobs:
             --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
             --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
             --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
-            --package-path model_package
+            --package-path artifacts/model_package
 
       - name: ACR login
         uses: azure/docker-login@v1
