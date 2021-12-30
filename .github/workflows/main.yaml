@@ -1,4 +1,4 @@
-name: Build
+name: CI-CD
 
 on:
   push:
@@ -7,6 +7,9 @@ on:
   pull_request:
     branches:
       - development
+
+env:
+  PROJECT_NAME: wine-quality
 
 jobs:
   build:
@@ -29,7 +32,7 @@ jobs:
       - name: Setup python environment
         uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: wine_quality_service_env
+          activate-environment: ${{PROJECT_NAME}}_env
           environment-file: service/environment.yaml
           python-version: 3.8
           auto-activate-base: false
@@ -52,7 +55,8 @@ jobs:
           OUTLIER_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $OUTLIER_MODEL_ARTIFACT_URI)
 
           # Package model as webservice with bentoml
-          mkdir model_package
+          mkdir artifacts
+          mkdir artifacts/model_package
           python3 service/package_model_service.py \
             --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
             --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
@@ -68,24 +72,34 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t wine_quality_service ./model_package
-          docker tag wine_quality_service ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
-          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+          docker build -t ${{PROJECT_NAME}} ./model_package
+          docker tag ${{PROJECT_NAME}} ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
+          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
+
+      - name: Update Kubernetes manifest file
+        run: |
+          export IMAGE_NAME=${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}
+          export IMAGE_TAG=${{ github.sha }}
+          envsubst < manifests/wine-quality-service.yaml > artifacts/manifest.yaml
 
       - name: Upload model package artifact
         uses: actions/upload-artifact@v2
         with:
-          name: model-package-artifact
-          path: model_package
+          name: build-artifacts
+          path: artifacts
 
-  deploy:
-    name: Deploy
+  staging:
+    name: Staging
     runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: Staging
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
+      - name: Download a single artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
 
       - name: Azure login
         uses: azure/login@v1
@@ -113,9 +127,55 @@ jobs:
         uses: azure/k8s-deploy@v1
         with:
           manifests: |
-            manifests/wine-quality-service.yaml
+            artifacts/manifest.yaml
           images: |
-            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/wine_quality_service:${{ github.sha }}
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
+          imagepullsecrets: |
+            ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: default
+
+  production:
+    name: Production
+    runs-on: ubuntu-latest
+    needs: staging
+    environment:
+      name: Production
+
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set target Kubernetes cluster
+        uses: azure/aks-set-context@v1
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+          cluster-name: ${{ secrets.KUBERNETES_NAME }}
+          resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
+
+      - name: Create image pull secret for ACR
+        uses: azure/k8s-create-secret@v1
+        with:
+          container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
+          container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+          secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: default
+          arguments: --force true
+
+      - name: Deploy to AKS
+        uses: azure/k8s-deploy@v1
+        with:
+          manifests: |
+            artifacts/manifest.yaml
+          images: |
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{PROJECT_NAME}}:${{ github.sha }}
           imagepullsecrets: |
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
