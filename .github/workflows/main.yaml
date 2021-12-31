@@ -63,8 +63,8 @@ jobs:
             --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
             --package-path artifacts/model_package
 
-          # Copy model configuration to artifact dir
-          mv service/configuration.json artifact/model.json
+          # Copy model configuration to artifacts directory
+          cp service/configuration.json artifacts/model.json
 
       - name: ACR login
         uses: azure/docker-login@v1
