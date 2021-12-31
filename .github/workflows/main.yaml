@@ -63,6 +63,9 @@ jobs:
             --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
             --package-path artifacts/model_package
 
+          # Copy model configuration to artifact dir
+          cp service/configuration.json artifact/model.json
+
       - name: ACR login
         uses: azure/docker-login@v1
         with:
@@ -134,6 +137,34 @@ jobs:
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
 
+      - name: Transition models to staging
+        run: |
+          # Configure databricks host
+          export MLFLOW_TRACKING_URI=databricks
+          export DATABRICKS_HOST="${{ secrets.DATABRICKS_HOST }}"
+          export DATABRICKS_TOKEN="${{ secrets.DATABRICKS_TOKEN }}"
+
+          # Define model stage
+          MODEL_STAGE=Staging
+
+          # Transition prediction model stage
+          PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)
+          PREDICTION_MODEL_NAME=$(echo $PREDICTION_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f1)
+          PREDICTION_MODEL_VERSION=$(echo $PREDICTION_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f2)
+          curl -i -X POST -H "Authorization: Bearer $(DATABRICKS_TOKEN)" $(DATABRICKS_HOST)/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${PREDICTION_MODEL_NAME}"'", "version": "'"${PREDICTION_MODEL_VERSION}"'", "stage": "'"${MODEL_STAGE}"'", "archive_existing_versions": true}'
+
+          # Transition drift model stage
+          DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)
+          DRIFT_MODEL_NAME=$(echo $DRIFT_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f1)
+          DRIFT_MODEL_VERSION=$(echo $DRIFT_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f2)
+          curl -i -X POST -H "Authorization: Bearer $(DATABRICKS_TOKEN)" $(DATABRICKS_HOST)/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${DRIFT_MODEL_NAME}"'", "version": "'"${DRIFT_MODEL_VERSION}"'", "stage": "'"${MODEL_STAGE}"'", "archive_existing_versions": true}'
+
+          # Transition outlier model stage
+          OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)
+          OUTLIER_MODEL_NAME=$(echo $OUTLIER_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f1)
+          OUTLIER_MODEL_VERSION=$(echo $OUTLIER_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f2)
+          curl -i -X POST -H "Authorization: Bearer $(DATABRICKS_TOKEN)" $(DATABRICKS_HOST)/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${OUTLIER_MODEL_NAME}"'", "version": "'"${OUTLIER_MODEL_VERSION}"'", "stage": "'"${MODEL_STAGE}"'", "archive_existing_versions": true}'
+
   production:
     name: Production
     runs-on: ubuntu-latest
@@ -179,3 +210,31 @@ jobs:
           imagepullsecrets: |
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
+
+      - name: Transition models to production
+        run: |
+          # Configure databricks host
+          export MLFLOW_TRACKING_URI=databricks
+          export DATABRICKS_HOST="${{ secrets.DATABRICKS_HOST }}"
+          export DATABRICKS_TOKEN="${{ secrets.DATABRICKS_TOKEN }}"
+
+          # Define model stage
+          MODEL_STAGE=Production
+
+          # Transition prediction model stage
+          PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)
+          PREDICTION_MODEL_NAME=$(echo $PREDICTION_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f1)
+          PREDICTION_MODEL_VERSION=$(echo $PREDICTION_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f2)
+          curl -i -X POST -H "Authorization: Bearer $(DATABRICKS_TOKEN)" $(DATABRICKS_HOST)/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${PREDICTION_MODEL_NAME}"'", "version": "'"${PREDICTION_MODEL_VERSION}"'", "stage": "'"${MODEL_STAGE}"'", "archive_existing_versions": true}'
+
+          # Transition drift model stage
+          DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)
+          DRIFT_MODEL_NAME=$(echo $DRIFT_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f1)
+          DRIFT_MODEL_VERSION=$(echo $DRIFT_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f2)
+          curl -i -X POST -H "Authorization: Bearer $(DATABRICKS_TOKEN)" $(DATABRICKS_HOST)/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${DRIFT_MODEL_NAME}"'", "version": "'"${DRIFT_MODEL_VERSION}"'", "stage": "'"${MODEL_STAGE}"'", "archive_existing_versions": true}'
+
+          # Transition outlier model stage
+          OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)
+          OUTLIER_MODEL_NAME=$(echo $OUTLIER_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f1)
+          OUTLIER_MODEL_VERSION=$(echo $OUTLIER_MODEL_ARTIFACT_URI | awk '{ print substr( $0, 9 ) }' | cut -d '/' -f2)
+          curl -i -X POST -H "Authorization: Bearer $(DATABRICKS_TOKEN)" $(DATABRICKS_HOST)/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${OUTLIER_MODEL_NAME}"'", "version": "'"${OUTLIER_MODEL_VERSION}"'", "stage": "'"${MODEL_STAGE}"'", "archive_existing_versions": true}'
