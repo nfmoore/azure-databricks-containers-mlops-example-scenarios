@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: wine-quality-service
+  name: wine-quality-service
+spec:
+  selector:
+    matchLabels:
+      app: wine-quality-service
+  template:
+    metadata:
+      labels:
+        app: wine-quality-service
+    spec:
+      containers:
+        - image: ${IMAGE_NAME}:${IMAGE_TAG}
+          imagePullPolicy: Always
+          name: wine-quality-service
+          ports:
+            - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: wine-quality-service
+  name: wine-quality-service
+spec:
+  ports:
+    - name: predict
+      port: 5000
+      targetPort: 5000
+  selector:
+    app: wine-quality-service
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wine-quality-service
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wine-quality-service
+                port:
+                  number: 5000

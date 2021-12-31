@@ -1,0 +1,207 @@
+name: CI-CD
+
+on:
+  push:
+    branches:
+      - development
+      - main
+  pull_request:
+    branches:
+      - development
+      - main
+
+env:
+  PROJECT_NAME: wine-quality
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup python environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: ${{ env.PROJECT_NAME }}_env
+          environment-file: service/environment.yaml
+          python-version: 3.8
+          auto-activate-base: false
+
+      - name: Set databricks host environment variables
+        run: |
+          echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
+          echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST }}" >> $GITHUB_ENV
+          echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Set artifact URI environment variables
+        run: |
+          echo "PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)" >> $GITHUB_ENV
+          echo "DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)" >> $GITHUB_ENV
+          echo "OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)" >> $GITHUB_ENV
+
+      - name: Package model service
+        run: |
+          # Download model artifacts from databricks
+          PREDICTION_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $PREDICTION_MODEL_ARTIFACT_URI)
+          DRIFT_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $DRIFT_MODEL_ARTIFACT_URI)
+          OUTLIER_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $OUTLIER_MODEL_ARTIFACT_URI)
+
+          # Create directory for model package
+          mkdir -p artifacts/model_package
+
+          # Package model as webservice with bentoml
+          python3 service/package_model_service.py \
+            --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
+            --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
+            --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
+            --package-path artifacts/model_package
+
+          # Copy model configuration to artifacts directory
+          cp service/configuration.json artifacts/model.json
+
+      - name: ACR login
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
+          password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+
+      - name: Build and push image
+        run: |
+          docker build -t ${{ env.PROJECT_NAME }} artifacts/model_package
+          docker tag ${{ env.PROJECT_NAME }} ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
+          docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
+
+      - name: Update Kubernetes manifest file
+        run: |
+          export IMAGE_NAME=${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}
+          export IMAGE_TAG=${{ github.sha }}
+          envsubst < manifests/api.yaml > artifacts/manifest.yaml
+
+      - name: Upload model package artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: artifacts
+
+  staging:
+    name: Staging
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: Staging
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set target Kubernetes cluster
+        uses: azure/aks-set-context@v1
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+          cluster-name: ${{ secrets.KUBERNETES_NAME }}
+          resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
+
+      - name: Create image pull secret for ACR
+        uses: azure/k8s-create-secret@v1
+        with:
+          container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
+          container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+          secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: default
+          arguments: --force true
+
+      - name: Deploy to AKS
+        uses: azure/k8s-deploy@v1
+        with:
+          manifests: |
+            manifest.yaml
+          images: |
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
+          imagepullsecrets: |
+            ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: default
+
+      - name: Transition models to staging
+        run: |
+          for i in {$PREDICTION_MODEL_ARTIFACT_URI,$DRIFT_MODEL_ARTIFACT_URI,$OUTLIER_MODEL_ARTIFACT_URI}; 
+          do 
+            MODEL_NAME=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
+            MODEL_VERSION=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
+            curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Staging", "archive_existing_versions": true}' ;
+          done
+
+  production:
+    name: Production
+    runs-on: ubuntu-latest
+    needs: staging
+    environment:
+      name: Production
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set target Kubernetes cluster
+        uses: azure/aks-set-context@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          cluster-name: ${{ secrets.KUBERNETES_NAME }}
+          resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
+
+      - name: Create image pull secret for ACR
+        uses: azure/k8s-create-secret@v1
+        with:
+          container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
+          container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+          secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: default
+          arguments: --force true
+
+      - name: Deploy to AKS
+        uses: azure/k8s-deploy@v1
+        with:
+          manifests: |
+            manifest.yaml
+          images: |
+            ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
+          imagepullsecrets: |
+            ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
+          namespace: default
+
+      - name: Transition models to production
+        run: |
+          for i in {$PREDICTION_MODEL_ARTIFACT_URI,$DRIFT_MODEL_ARTIFACT_URI,$OUTLIER_MODEL_ARTIFACT_URI}; 
+          do 
+            MODEL_NAME=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
+            MODEL_VERSION=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
+            curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}' ;
+          done
