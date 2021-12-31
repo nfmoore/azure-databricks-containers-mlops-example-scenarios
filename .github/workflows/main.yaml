@@ -155,7 +155,7 @@ jobs:
       - name: Set target Kubernetes cluster
         uses: azure/aks-set-context@v1
         with:
-          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
           cluster-name: ${{ secrets.KUBERNETES_NAME }}
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
@@ -173,7 +173,7 @@ jobs:
         uses: azure/k8s-deploy@v1
         with:
           manifests: |
-            artifacts/manifest.yaml
+            manifest.yaml
           images: |
             ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
           imagepullsecrets: |
