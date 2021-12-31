@@ -201,7 +201,7 @@ jobs:
         run: |
           for i in {$PREDICTION_MODEL_ARTIFACT_URI,$DRIFT_MODEL_ARTIFACT_URI,$OUTLIER_MODEL_ARTIFACT_URI}; 
           do 
-            MODEL_NAME=$(echo $i | cut -c 9- | cut -d '/' -f1)
-            MODEL_VERSION=$(echo $i | cut -c 9- | cut -d '/' -f1)
-            curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}'
+            MODEL_NAME=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
+            MODEL_VERSION=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
+            curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}' ;
           done
