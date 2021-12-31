@@ -64,7 +64,7 @@ jobs:
             --package-path artifacts/model_package
 
           # Copy model configuration to artifact dir
-          cp service/configuration.json artifact/model.json
+          mv service/configuration.json artifact/model.json
 
       - name: ACR login
         uses: azure/docker-login@v1
