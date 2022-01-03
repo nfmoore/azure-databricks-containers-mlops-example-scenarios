@@ -2,7 +2,9 @@
 
 ## Overview
 
-This repository contains resources for an end-to-end proof of concept which illustrates how an ML Flow model can be trained on Databricks, packaged as a webservice, deployed to Kubernetes via CI/CD and monitored within Microsoft Azure.
+This repository contains resources for an end-to-end proof of concept which illustrates how an ML Flow model can be trained on Databricks, packaged as a webservice, deployed to Kubernetes via CI/CD and monitored within Microsoft Azure. A high-level solution design is shown below:
+
+![solution-design](.github/docs/images/design.png)
 
 ## Getting Started
 
