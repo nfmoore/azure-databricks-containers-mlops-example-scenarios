@@ -1,4 +1,4 @@
-# Proof-of-Concept: Deploying an MLFlow Model for Real-Time Inference using Databricks and Kubernetes
+# Proof-of-Concept: ML Ops Platform using Databricks and Kubernetes
 
 ## Overview
 
