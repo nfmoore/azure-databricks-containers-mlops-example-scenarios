@@ -15,9 +15,9 @@ Log in to your GitHub account, navigate to the [databricks-kubernetes-real-time-
 
 The Azure resources required to implement this proof-of-concept include an [Azure Databricks](https://docs.microsoft.com/en-us/azure/databricks/scenarios/what-is-azure-databricks) workspace, an [Azure Log Analytics](https://docs.microsoft.com/en-us/azure/azure-monitor/logs/data-platform-logs) workspace, an [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-intro) (ACR), and 2 [Azure Kubernetes Service](https://docs.microsoft.com/en-us/azure/aks/intro-kubernetes) (AKS) instances (for a staging and production environment respectively). These can be deployed via the following [ARM templates](https://github.com/nfmoore/azure-infrastructure-templates):
 
-- [Template one: Databricks workspace]( https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnfmoore%2Fazure-infrastructure-templates%2Fmain%2Ftemplates%2Fdata-databricks-workspace%2Fmain.json)
+- [**Template one:** Databricks workspace]( https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnfmoore%2Fazure-infrastructure-templates%2Fmain%2Ftemplates%2Fdata-databricks-workspace%2Fmain.json)
 
-- [Template two: Kubernetes with ACR and a Log Analytics workspace]( https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnfmoore%2Fazure-infrastructure-templates%2Fmain%2Ftemplates%2Fapps-microservices%2Fmain.json)
+- [**Template two:** Kubernetes with ACR and a Log Analytics workspace]( https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fnfmoore%2Fazure-infrastructure-templates%2Fmain%2Ftemplates%2Fapps-microservices%2Fmain.json)
 
 When deploying these templates the same resource group can be used for this proof-of-concept. You can create this as part of the custom deployment. Deploy template one once, and template two twice. Template one can be deployed using default values and template two can be deployed using default values for the first deployment only. For the second deployment of template two, you need to reference the ACR and a Log Analytics workspace from the first deployment of template two. To do this you will need to change the following parameters (shown in the image below):
 
@@ -135,11 +135,11 @@ Once the notebook has been successfully executed, navigate to the `Models` secti
 
 On the registered models page you should see 3 models:
 
-- `wine_quality`: a model used to make predictions from inference data
+- `wine_quality`: a model used to make predictions from inference data.
 
-- `wine_quality_outliers`: a model used to detect outliers for monitoring purposes
+- `wine_quality_outliers`: a model used to detect outliers for monitoring purposes.
 
-- `wine_quality_drift`: a model used to detect data drift for monitoring purposes
+- `wine_quality_drift`: a model used to detect data drift for monitoring purposes.
 
 ![2-2](.github/../images/implementation/2-2.png)
 
@@ -194,6 +194,7 @@ This workflow comprises of three jobs:
 - **Production:** this job will deploy the Docker container to the AKS  cluster specified in the GitHub environment called `Production`. Once deployed, the models’ state will transition to the `Production` state in the ML Flow model registry.
 
 Note that manual approval is required to deploy the Docker container to the `Production` environment. Once the Staging job is complete you will be prompted to review the deployment. Click the `Review Deployment` button to give approval and commence the Production job. The approver(s) was specified in `1.4`.
+
 ![3-2](.github/../images/implementation/3-2.png)
 
 ### 3.2. Consume model service
