@@ -159,7 +159,7 @@ Please note if you retained the default values you do not need to commit any cha
 
 ## 3. Model Deployment
 
-From your GitHub repo select `Actions` from the menu. From here you will be able to view the GitHub Action implementing the CI/CD pipeline for this proof-of-concept. By default, the workflow in this proof-of-concept is triggered when changes are pushed, or a pull request is made to either the `main` or `development` branch. 
+From your GitHub repo select `Actions` from the menu. From here you will be able to view the GitHub Action implementing the CI/CD pipeline for this proof-of-concept. By default, the workflow in this proof-of-concept is triggered when changes are pushed, or a pull request is made to either the `main` or `development` branch.
 
 The following files play a key role in packaging and deploying the model API service:
 
