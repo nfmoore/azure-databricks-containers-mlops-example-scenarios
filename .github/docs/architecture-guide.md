@@ -19,7 +19,7 @@ At a high level, this solution design addresses each stage of the machine learni
 - Data Preparation: this includes sourcing, cleaning, and transforming the data for processing and analysis. Data can live in a data lake or data warehouse and be stored in a feature store after it's curated.
 - Model Development: this includes core components of the model development process such as experiment tracking and model registration using [MLflow](https://docs.microsoft.com/en-us/azure/databricks/applications/mlflow/).
 - Model Deployment: this includes implementing a CI/CD pipeline to containerize machine learning models as API services. These services will be deployed to Azure Kubernetes clusters for end-users to consume.
-- Model Monitoring: this includes monitoring the API performance and model data drift by analyzing log telemetry with Azure Monitor to.
+- Model Monitoring: this includes monitoring the API performance and model data drift by analyzing log telemetry with Azure Monitor.
 
 > **NOTE:**
 >
