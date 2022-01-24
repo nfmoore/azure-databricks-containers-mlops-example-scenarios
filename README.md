@@ -8,6 +8,8 @@ This repository contains resources for an end-to-end proof of concept which illu
 
 For more information on a generic solution design see the [Architecture Guide](.github/docs/architecture-guide.md)
 
+> For additional insights into applying this approach to operationalize your machine learning initiatives refer to this article — [Machine Learning at Scale with Databricks and Kubernetes](https://medium.com/@nfmoore/machine-learning-at-scale-with-databricks-and-kubernetes-9fa59232bfa6)
+
 ## Getting Started
 
 This repository contains detailed step-by-step instructions on how to implement this solution in your Microsoft Azure subscription. At a high-level an implementation contains four main stages:
