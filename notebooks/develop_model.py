@@ -1,22 +1,22 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Develop Machine Learning Model
-# MAGIC
+# MAGIC 
 # MAGIC This notebook aims to develop and register an MLFlow Model for deployment consisting of:
 # MAGIC - a machine learning model to predict the liklihood of employee attrition.
 # MAGIC - a statistical model to determine data drift in features
 # MAGIC - a statistical model to determine outliers in features
-# MAGIC
+# MAGIC 
 # MAGIC This example uses the [`IBM HR Analytics Employee Attrition & Performance` dataset](https://www.kaggle.com/pavansubhasht/ibm-hr-analytics-attrition-dataset) available from Kaggle.
-# MAGIC
+# MAGIC 
 # MAGIC > Ensure you have configured your cluster to export your Kaggle username and token to the environment to use the Kaggle API. For reference see [Kaggle API Credentials](https://github.com/Kaggle/kaggle-api#api-credentials).
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC #### Import dependencies and pre-process data data
-# MAGIC
+# MAGIC 
 # MAGIC The dataset will be downloaded from Kaggle and and split into samples for model training and testing.
 
 # COMMAND ----------
@@ -89,9 +89,9 @@ X_train, X_test, y_train, y_test = train_test_split(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC #### Build classifier
-# MAGIC
+# MAGIC 
 # MAGIC A machine learning model will be built to predict the liklihood of employee attrition.
 
 # COMMAND ----------
@@ -154,13 +154,13 @@ search_space = {
 }
 
 # Start model training run
-with mlflow.start_run(run_name="attrition-classifier") as run:
+with mlflow.start_run(run_name="employee-attrition-classifier") as run:
     # Hyperparameter tuning
     best_params = fmin(
         fn=hyperparameter_tuning,
         space=search_space,
         algo=tpe.suggest,
-        max_evals=25,
+        max_evals=10,
     )
 
     # End run
@@ -183,9 +183,9 @@ client.download_artifacts(best_run.run_id, "model", local_dir)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC #### Build data drift model
-# MAGIC
+# MAGIC 
 # MAGIC A statistical model will be built to determine data drift in features.
 
 # COMMAND ----------
@@ -205,7 +205,7 @@ def process_drift_output(output, column_names):
     }
 
 
-with mlflow.start_run(run_name="attrition-drift") as run:
+with mlflow.start_run(run_name="employee-attrition-drift") as run:
     # Develop drift model
     drift_column_names = columns_categorical + columns_numeric
     categories_per_feature = {0: None, 1: None, 2: None,
@@ -233,9 +233,9 @@ with mlflow.start_run(run_name="attrition-drift") as run:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC #### Build outlier model
-# MAGIC
+# MAGIC 
 # MAGIC A statistical model will be built to determine outliers in numeric features.
 
 # COMMAND ----------
@@ -248,15 +248,13 @@ def make_outlier_model(X, **params):
     return outlier_model
 
 # Preprocess output of outlier model
-
-
 def process_outlier_output(output, column_names):
     return {
         "is_outlier": dict(zip(column_names, output["data"]["is_outlier"].tolist())),
     }
 
 
-with mlflow.start_run(run_name="attrition-outlier") as run:
+with mlflow.start_run(run_name="employee-attrition-outlier") as run:
     # Develop outlier model
     outlier_model = make_outlier_model(
         X_train[columns_numeric].values, threshold=5)
@@ -280,15 +278,15 @@ with mlflow.start_run(run_name="attrition-outlier") as run:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC
+# MAGIC 
 # MAGIC #### Register MLFlow Model Artifact
-# MAGIC
+# MAGIC 
 # MAGIC Develop a `python_function` model object which references the classifer, drift model, and outlier model. This model artifact will be deployed as a web service.
 
 # COMMAND ----------
 
 
-class AttritionModel(mlflow.pyfunc.PythonModel):
+class EmployeeAttritionModel(mlflow.pyfunc.PythonModel):
     """
     Class containing attrition use-case models - attrition classifer, drift model, and outlier model.
     """
@@ -328,10 +326,10 @@ class AttritionModel(mlflow.pyfunc.PythonModel):
 # COMMAND ----------
 
 
-with mlflow.start_run(run_name="attrition-model-artifact") as run:
+with mlflow.start_run(run_name="employee-attrition-model-artifact") as run:
     # Define conda environment
     mlflow_conda_env = {
-        'name': "attrition-env",
+        'name': "employee-attrition-env",
         'channels': ["defaults"],
         'dependencies': [
             "python=3.8.10",
@@ -349,7 +347,7 @@ with mlflow.start_run(run_name="attrition-model-artifact") as run:
     }
 
     # Create instance of model
-    model_artifact = AttritionModel(
+    model_artifact = EmployeeAttritionModel(
         columns_categorical=columns_categorical,
         columns_numeric=columns_numeric
     )
@@ -358,12 +356,12 @@ with mlflow.start_run(run_name="attrition-model-artifact") as run:
     y_pred_proba = joblib.load(
         "/tmp/models/classifier/model/model.pkl").predict_proba(X_test)
     signature = infer_signature(X_train)
-
+    
     # Log model
     mlflow.pyfunc.log_model(
-        artifact_path="",
-        artifacts={"artifacts_path": "/tmp/models"},
+        artifact_path="employee-attrition-model",
         python_model=model_artifact,
+        artifacts={"artifacts_path": "/tmp/models"},
         conda_env=mlflow_conda_env,
         signature=signature
     )
@@ -375,8 +373,8 @@ with mlflow.start_run(run_name="attrition-model-artifact") as run:
 
 # Register drift model to MLFlow model registry
 registered_attrition_model = mlflow.register_model(
-    f"runs:/{run.info.run_id}",
-    "attrition_model"
+    f"runs:/{run.info.run_id}/employee-attrition-model",
+    "employee_attrition"
 )
 
 # COMMAND ----------
@@ -390,3 +388,5 @@ model_output = loaded_attrition_model.predict(X_test.head(5))
 pprint(model_output, width=120, compact=True)
 
 # COMMAND ----------
+
+
