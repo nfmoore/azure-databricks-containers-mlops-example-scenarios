@@ -1,17 +1,9 @@
 name: CI-CD
 
-on:
-  push:
-    branches:
-      - development
-      - main
-  pull_request:
-    branches:
-      - development
-      - main
+on: workflow_dispatch
 
 env:
-  PROJECT_NAME: wine-quality
+  PROJECT_NAME: employee-attrition
 
 jobs:
   build:
@@ -31,13 +23,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Setup python environment
-        uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/setup-python@v2
         with:
-          activate-environment: ${{ env.PROJECT_NAME }}_env
-          environment-file: service/environment.yaml
           python-version: 3.8
-          auto-activate-base: false
+          cache: pip
+      - run: pip install -r service/requirements.txt
 
       - name: Set databricks host environment variables
         run: |
@@ -45,31 +35,21 @@ jobs:
           echo "DATABRICKS_HOST=${{ secrets.DATABRICKS_HOST }}" >> $GITHUB_ENV
           echo "DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN }}" >> $GITHUB_ENV
 
-      - name: Set artifact URI environment variables
+      - name: Set artifact model environment variables
         run: |
-          echo "PREDICTION_MODEL_ARTIFACT_URI=$(jq --raw-output .prediction_model_artifact_uri service/configuration.json)" >> $GITHUB_ENV
-          echo "DRIFT_MODEL_ARTIFACT_URI=$(jq --raw-output .drift_model_artifact_uri service/configuration.json)" >> $GITHUB_ENV
-          echo "OUTLIER_MODEL_ARTIFACT_URI=$(jq --raw-output .outlier_model_artifact_uri service/configuration.json)" >> $GITHUB_ENV
+          echo "MODEL_NAME=$(jq --raw-output .model_name service/configuration.json)" >> $GITHUB_ENV
+          echo "MODEL_VERSION=$(jq --raw-output .model_version service/configuration.json)" >> $GITHUB_ENV
 
-      - name: Package model service
+      - name: Download model artifact
         run: |
+          # Get model artifact uri
+          MODEL_ARTIFACT_URI=$(curl -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/get-download-uri -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' | jq ".artifact_uri")
+
           # Download model artifacts from databricks
-          PREDICTION_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $PREDICTION_MODEL_ARTIFACT_URI)
-          DRIFT_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $DRIFT_MODEL_ARTIFACT_URI)
-          OUTLIER_MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $OUTLIER_MODEL_ARTIFACT_URI)
-
-          # Create directory for model package
-          mkdir -p artifacts/model_package
-
-          # Package model as webservice with bentoml
-          python3 service/package_model_service.py \
-            --mlflow-prediction-model-artifiact-path $PREDICTION_MODEL_ARTIFACT_URI \
-            --mlflow-drift-model-artifiact-path $DRIFT_MODEL_ARTIFACT_URI \
-            --mlflow-outlier-model-artifiact-path $OUTLIER_MODEL_ARTIFACT_URI \
-            --package-path artifacts/model_package
+          MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $MODEL_ARTIFACT_URI)
 
           # Copy model configuration to artifacts directory
-          cp service/configuration.json artifacts/model.json
+          cp -R $MODEL_ARTIFACT_PATH service/employee-attrition-model
 
       - name: ACR login
         uses: azure/docker-login@v1
@@ -144,12 +124,7 @@ jobs:
 
       - name: Transition models to staging
         run: |
-          for i in {$PREDICTION_MODEL_ARTIFACT_URI,$DRIFT_MODEL_ARTIFACT_URI,$OUTLIER_MODEL_ARTIFACT_URI}; 
-          do 
-            MODEL_NAME=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
-            MODEL_VERSION=$(echo $i | cut -c 9- | cut -d '/' -f2) ;
-            curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Staging", "archive_existing_versions": true}' ;
-          done
+          curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Staging", "archive_existing_versions": true}' ;
 
   production:
     name: Production
@@ -199,9 +174,4 @@ jobs:
 
       - name: Transition models to production
         run: |
-          for i in {$PREDICTION_MODEL_ARTIFACT_URI,$DRIFT_MODEL_ARTIFACT_URI,$OUTLIER_MODEL_ARTIFACT_URI}; 
-          do 
-            MODEL_NAME=$(echo $i | cut -c 9- | cut -d '/' -f1) ;
-            MODEL_VERSION=$(echo $i | cut -c 9- | cut -d '/' -f2) ;
-            curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}' ;
-          done
+          curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}' ;

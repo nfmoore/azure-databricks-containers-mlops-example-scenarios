@@ -1,5 +1,4 @@
 {
-  "prediction_model_artifact_uri": "models:/wine_quality/1",
-  "drift_model_artifact_uri": "models:/wine_quality_drift/1",
-  "outlier_model_artifact_uri": "models:/wine_quality_outlier/1"
+  "model_name": "employee_attrition",
+  "model_version": "1"
 }

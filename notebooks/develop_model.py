@@ -22,7 +22,6 @@
 # COMMAND ----------
 
 import os
-import time
 from pprint import pprint
 
 import joblib

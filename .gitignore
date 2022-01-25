@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Custom
-model_package
+employee_attrition_model
 .DS_Store
