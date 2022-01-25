@@ -154,8 +154,6 @@ search_space = {
 }
 
 # Start model training run
-# run_suffix = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-# run_name = f"attrition-classifier-{run_suffix}"
 with mlflow.start_run(run_name="attrition-classifier") as run:
     # Hyperparameter tuning
     best_params = fmin(
@@ -198,8 +196,6 @@ def make_drift_model(X, categories_per_feature, **params):
     return TabularDrift(X, categories_per_feature=categories_per_feature, **params)
 
 # Preprocess output of drift model
-
-
 def process_drift_output(output, column_names):
     return {
         "threshold": output["data"]["threshold"],
