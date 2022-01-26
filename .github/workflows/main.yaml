@@ -1,4 +1,4 @@
-name: CI-CD
+name: Build-Deploy
 
 on: workflow_dispatch
 
@@ -43,13 +43,15 @@ jobs:
       - name: Download model artifact
         run: |
           # Get model artifact uri
-          MODEL_ARTIFACT_URI=$(curl -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/get-download-uri -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' | jq ".artifact_uri")
+          MODEL_ARTIFACT_URI=$(curl -X GET -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/get-download-uri -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' | jq ".artifact_uri" --raw-output)
 
           # Download model artifacts from databricks
           MODEL_ARTIFACT_PATH=$(mlflow artifacts download -u $MODEL_ARTIFACT_URI)
 
           # Copy model configuration to artifacts directory
-          cp -R $MODEL_ARTIFACT_PATH service/employee-attrition-model
+          mkdir artifacts
+          cp service/configuration.json artifacts/model.json
+          cp -R $MODEL_ARTIFACT_PATH service/employee_attrition_model
 
       - name: ACR login
         uses: azure/docker-login@v1
@@ -60,7 +62,7 @@ jobs:
 
       - name: Build and push image
         run: |
-          docker build -t ${{ env.PROJECT_NAME }} artifacts/model_package
+          docker build -t ${{ env.PROJECT_NAME }} service
           docker tag ${{ env.PROJECT_NAME }} ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
           docker push ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io/${{ env.PROJECT_NAME }}:${{ github.sha }}
 
@@ -122,9 +124,14 @@ jobs:
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
 
+      - name: Set artifact model environment variables
+        run: |
+          echo "MODEL_NAME=$(jq --raw-output .model_name model.json)" >> $GITHUB_ENV
+          echo "MODEL_VERSION=$(jq --raw-output .model_version model.json)" >> $GITHUB_ENV
+
       - name: Transition models to staging
         run: |
-          curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Staging", "archive_existing_versions": true}' ;
+          curl -i -X POST -H "Authorization: Bearer ${{ secrets.DATABRICKS_TOKEN }}" ${{ secrets.DATABRICKS_HOST }}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Staging", "archive_existing_versions": true}' ;
 
   production:
     name: Production
@@ -172,6 +179,11 @@ jobs:
             ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
 
-      - name: Transition models to production
+      - name: Set artifact model environment variables
         run: |
-          curl -i -X POST -H "Authorization: Bearer ${DATABRICKS_TOKEN}" ${DATABRICKS_HOST}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}' ;
+          echo "MODEL_NAME=$(jq --raw-output .model_name model.json)" >> $GITHUB_ENV
+          echo "MODEL_VERSION=$(jq --raw-output .model_version model.json)" >> $GITHUB_ENV
+
+      - name: Transition models to staging
+        run: |
+          curl -i -X POST -H "Authorization: Bearer ${{ secrets.DATABRICKS_TOKEN }}" ${{ secrets.DATABRICKS_HOST }}/api/2.0/preview/mlflow/model-versions/transition-stage -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'", "stage": "Production", "archive_existing_versions": true}' ;

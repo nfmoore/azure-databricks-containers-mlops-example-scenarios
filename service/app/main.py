@@ -15,7 +15,7 @@ SERVICE_NAME = "Employee Attrition API"
 MODEL_ARTIFACT_PATH = "./employee_attrition_model"
 
 # Initialize the FastAPI app
-app = FastAPI(title=SERVICE_NAME)
+app = FastAPI(title=SERVICE_NAME, docs_url="/")
 
 # Configure logger
 log = logging.getLogger("uvicorn")

@@ -6,4 +6,5 @@ RUN apt-get update
 RUN apt-get install ffmpeg libsm6 libxext6  -y
 COPY ./app /code/app
 COPY ./employee_attrition_model /code/employee_attrition_model
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+EXPOSE 5000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000"]
