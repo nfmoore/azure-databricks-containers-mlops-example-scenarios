@@ -9,7 +9,7 @@
 
 ### 1.1. Create repository
 
-Log in to your GitHub account, navigate to the [databricks-kubernetes-real-time-mlflow-model-deployment-poc](https://github.com/nfmoore/databricks-kubernetes-real-time-mlflow-model-deployment-poc) repository and click `use this template` to create a new repository from this template. Rename the template and leave it public. Use [these](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) instructions for more details about creating a repository from a template.
+Log in to your GitHub account, navigate to the [databricks-kubernetes-mlops-poc](https://github.com/nfmoore/databricks-kubernetes-mlops-poc) repository and click `use this template` to create a new repository from this template. Rename the template and leave it public. Use [these](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) instructions for more details about creating a repository from a template.
 
 ### 1.2. Deploy resources
 
@@ -24,12 +24,6 @@ To deploy the resources for this proof-of-concept in your Azure environment clic
 ### 1.3. Configure resources
 
 After the resources have been successfully deployed some services need to be configured before you can train, register, deploy and monitor the machine learning models.
-
-#### Log Analytics Workspace
-
-For the Log Analytics workspace, Azure Monitor for Containers needs to be enabled. To enable this, click on an AKS cluster deployed as part of 1.2 above, click on the Logs tab in the monitoring section, then select your Log Analytics workspace and click enable. This process is shown in the image below. Ensure to repeat this process for the second AKS cluster in your resource group.
-
-![1-2](.github/../images/implementation/1-2.png)
 
 #### Azure Databricks
 
@@ -97,8 +91,8 @@ You need to create the following secrets:
 
 | Secret name | How to find secret value |
 |:------------|:-------------------------|
-| AZURE_CREDENTIALS | A JSON object with details of your Azure Service Principal. [This](https://github.com/marketplace/actions/azure-login#configure-deployment-credentials) document will help you configure a service principal with a secret. The value will look something like: ` { "clientId": "<GUID>", "clientSecret": "<GUID>", "subscriptionId": "<GUID>", "tenantId": "<GUID>", ... }`|
-| DATABRICKS_HOST | This is the `instance name` or `per-workspace URL` of your Azure Databricks service. Its value can be found from the Databricks service page on the Azure Portal under the `URL` parameter. For more information [this]( https://docs.microsoft.com/en-us/azure/databricks/workspace/workspace-details#per-workspace-url) resource can be used. The value will look something like ` https://adb-5555555555555555.19.azuredatabricks.net`|
+| AZURE_CREDENTIALS | A JSON object with details of your Azure Service Principal. [This](https://github.com/marketplace/actions/azure-login#configure-deployment-credentials) document will help you configure a service principal with a secret. The value will look something like: `{ "clientId": "<GUID>", "clientSecret": "<GUID>", "subscriptionId": "<GUID>", "tenantId": "<GUID>", ... }`|
+| DATABRICKS_HOST | This is the `instance name` or `per-workspace URL` of your Azure Databricks service. Its value can be found from the Databricks service page on the Azure Portal under the `URL` parameter. For more information [this]( https://docs.microsoft.com/en-us/azure/databricks/workspace/workspace-details#per-workspace-url) resource can be used. The value will look something like `https://adb-5555555555555555.19.azuredatabricks.net`|
 | DATABRICKS_TOKEN | This is the value of the `Access Token` you created in `1.3`. The value should look something like `dapi55555555555555555555555555555555-2`. |
 | CONTAINER_REGISTRY_NAME | The name of the ACR service deployed in template two. |
 | CONTAINER_REGISTRY_PASSWORD | This can be found in the access keys section of the ACR service page. The Admin Account section of [this]( https://docs.microsoft.com/en-us/azure/container-registry/container-registry-authentication?tabs=azure-cli#admin-account) document contains more information. |

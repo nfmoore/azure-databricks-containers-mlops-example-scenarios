@@ -3,7 +3,6 @@
 ## Overview
 
 > For additional insights into applying this approach to operationalize your machine learning workloads refer to this article — [Machine Learning at Scale with Databricks and Kubernetes](https://medium.com/@nfmoore/machine-learning-at-scale-with-databricks-and-kubernetes-9fa59232bfa6)
-
 This repository contains resources for an end-to-end proof of concept which illustrates how an MLFlow model can be trained on Databricks, packaged as a web service, deployed to Kubernetes via CI/CD, and monitored within Microsoft Azure. A high-level solution design is shown below:
 
 ![workflow](.github/docs/images/workflow.png)
