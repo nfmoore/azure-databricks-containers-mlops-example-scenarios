@@ -2,13 +2,16 @@
 
 ## Overview
 
+> For additional insights into applying this approach to operationalize your machine learning workloads refer to this article — [Machine Learning at Scale with Databricks and Kubernetes](https://medium.com/@nfmoore/machine-learning-at-scale-with-databricks-and-kubernetes-9fa59232bfa6)
 This repository contains resources for an end-to-end proof of concept which illustrates how an MLFlow model can be trained on Databricks, packaged as a web service, deployed to Kubernetes via CI/CD, and monitored within Microsoft Azure. A high-level solution design is shown below:
 
 ![workflow](.github/docs/images/workflow.png)
 
-For more information on a generic solution design see the [Architecture Guide](.github/docs/architecture-guide.md)
+Within Azure Databricks, the `IBM HR Analytics Employee Attrition & Performance` [dataset](https://www.kaggle.com/pavansubhasht/ibm-hr-analytics-attrition-dataset) available from Kaggle will be used to develop and register a machine learning model. This model will predict the likelihood of attrition for an employee along with metrics capturing data drift and outliers to access the model's validity.
 
-> For additional insights into applying this approach to operationalize your machine learning workloads refer to this article — [Machine Learning at Scale with Databricks and Kubernetes](https://medium.com/@nfmoore/machine-learning-at-scale-with-databricks-and-kubernetes-9fa59232bfa6)
+This model will then be deployed as an API for real-time inference using Azure Kubernetes  Service. This API can be integrated with external applications used by HR teams to provide additional insights into the likelihood of attrition for a given employee within the organization. This information can be used to determine if a high-impact employee is likely to leave the organization and hence provide HR with the ability to proactively incentivize the employee to stay.
+
+The design covered in this proof-of-concept can be generalized to many machine learning workloads. For more information on a generic solution design see the [Architecture Guide](.github/docs/architecture-guide.md).
 
 ## Getting Started
 
@@ -23,16 +26,6 @@ This repository contains detailed step-by-step instructions on how to implement 
 - **Model Monitoring:** this includes using Azure Monitor for containers to monitor the health and performance of the API. In addition, Log Analytics will be used to monitor data drift and outliers by analysing log telemetry.
 
 For detailed step-by-step instructions see the [Implementation Guide](.github/docs/implementation-guide.md).
-
-## Scenario
-
-This proof-of-concept will be based on a common problem in HR analytics - employee attrition. Employee Attrition refers to the process by which employees leave an organization – for example, through resignation for personal reasons or retirement – and are not immediately replaced.
-
-Within this proof-of-concept, a machine learning model will be developed to predict the likelihood of attrition for an employee along with metrics capturing data drift and outliers to access the model's validity. This implementation uses the `IBM HR Analytics Employee Attrition & Performance` [dataset](https://www.kaggle.com/pavansubhasht/ibm-hr-analytics-attrition-dataset) available from Kaggle.
-
-The scenario in this repository will first develop a machine learning model which will then be deployed as an API for online inference. This API can be integrated with external applications used by HR teams to provide additional insights into the likelihood of attrition for a given employee within the organization. 
-
-The scenario in this repository will first develop a machine learning model which will then be deployed as an API for online inference. This API can be integrated with external applications used by HR teams to provide additional insights into the likelihood of attrition for a given employee within the organization. This information can be used to determine if a high-impact employee is likely to leave the organization and hence provide HR with the ability to proactively incentivize the employee to stay.
 
 ## License
 

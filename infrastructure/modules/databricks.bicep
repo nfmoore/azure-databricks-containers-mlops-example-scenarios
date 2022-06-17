@@ -9,7 +9,7 @@ param workloadIdentifier string = substring(uniqueString(resourceGroup().id), 0,
 param resourceInstance string = '001'
 
 @description('Resource Location')
-param resourceLocation string = resourceGroup().location
+param location string = resourceGroup().location
 
 //********************************************************
 // Resource Config Parameters
@@ -60,7 +60,7 @@ param allowSharedKeyAccess bool = false
 // Databricks Workspace
 resource r_databricksWorkspace 'Microsoft.Databricks/workspaces@2018-04-01' = {
   name: databricksWorkspaceName
-  location: resourceLocation
+  location: location
   sku: {
     name: pricingTier
   }
@@ -82,7 +82,7 @@ resource r_databricksManagedResourceGroup 'Microsoft.Resources/resourceGroups@20
 // Data Lake Storage Account
 resource r_dataLakeStorageAccount 'Microsoft.Storage/storageAccounts@2021-02-01' = if (deployDataLakeAccount == true) {
   name: dataLakeAccountName
-  location: resourceLocation
+  location: location
   properties: {
     isHnsEnabled: true
     accessTier: 'Hot'

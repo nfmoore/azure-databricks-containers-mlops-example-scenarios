@@ -22,7 +22,7 @@ param containerRegistryName string = 'cr${workloadIdentifier}${resourceInstance}
 @description('Create new Log Analytics Workspace ')
 param useExistingContainerRegistry bool = false
 
-@description('Log Analytics Workspace SKU')
+@description('Log Analytics Workspace Resource Group Name')
 param containerRegistryResourceGroupName string = resourceGroup().name
 
 @description('Enable Container Registry admin user')
@@ -37,17 +37,31 @@ param logAnalyticsWorkspaceName string = 'law${workloadIdentifier}${resourceInst
 @description('Create new Log Analytics Workspace ')
 param useExistingLogAnalyticsWorkspace bool = false
 
-@description('Log Analytics Workspace SKU')
+@description('Log Analytics Workspace Resource Group Name')
 param logAnalyticsWorkspaceResourceGroupName string = resourceGroup().name
 
-@description('Log Analytics Workspace SKU')
-param logAnalyticsWorkspaceSKU string = 'PerGB2018'
+//----------------------------------------------------------------------
 
-@description('Log Analytics Workspace Daily Quota')
-param logAnalyticsWorkspaceDailyQuota int = 1
+//Virtual Network Parameters
+@description('Virtual Network Name')
+param vNetName string = 'vnet${workloadIdentifier}${resourceInstance}'
 
-@description('Log Analytics Workspace Retention Period')
-param logAnalyticsWorkspaceRetentionPeriod int = 30
+@description('Virtual Network IP Address Prefixes')
+param vNetIPAddressPrefixes array = [
+  '192.168.0.0/16'
+]
+
+@description('AKS Subnet Name')
+param subnetAksName string = 'akssubnet'
+
+@description('App Gateway Subnet Name')
+param subnetAppGwName string = 'appgwsubnet'
+
+@description('AKS Subnet IP Address Prefix')
+param subnetAksIpAddressPrefix string = '192.168.0.0/24'
+
+@description('App Gateway IP Address Prefix')
+param subnetAppGwIpAddressPrefix string = '192.168.1.0/24'
 
 //----------------------------------------------------------------------
 
@@ -58,72 +72,31 @@ param kubernetesServiceClusterName string = 'aks${workloadIdentifier}${resourceI
 @description('DNS prefix to use with hosted Kubernetes API server FQDN')
 param dnsPrefix string = 'dns'
 
-@description('Disk size (in GiB) to provision for each of the agent pool nodes')
-@minValue(0)
-@maxValue(1023)
-param osDiskSizeGB int = 0
+//----------------------------------------------------------------------
 
-@description('Kubernetes cluster version')
-param kubernetesVersion string = '1.21.7'
+//Public IP Address Parameters
+@description('The name of the Public IP Address')
+param publicIpAddressName string = 'pubip${workloadIdentifier}${resourceInstance}'
 
-@description('Network plugin used for building Kubernetes network.')
-@allowed([
-  'azure'
-  'kubenet'
-])
-param networkPlugin string = 'kubenet'
+//----------------------------------------------------------------------
 
-@description('Enable RBAC.')
-param enableRBAC bool = true
-
-@description('Enable private network access to the Kubernetes cluster')
-param enablePrivateCluster bool = false
-
-@description('Enable application routing')
-param enableHttpApplicationRouting bool = false
-
-@description('Enable Azure Policy addon')
-param enableAzurePolicy bool = false
-
-@description('Enable application gateway')
-param enableIngressApplicationGateway bool = true
-
-@description('Application gateway name')
-param ingressApplicationGatewayName string = 'ingress-appgateway'
-
-@description('Application gateway subnet prefix')
-param ingressApplicationGatewaySubnetPrefix string = '10.1.0.0/16'
-
-@description('Cluster Virtual Machine size')
-param agentVMSize string = 'Standard_DS2_v2'
-
-@description('Number of nodes for the cluster')
-@minValue(1)
-@maxValue(50)
-param agentCount int = 3
-
-@description('Min number of nodes for the cluster')
-@minValue(1)
-@maxValue(50)
-param minAgentCount int = 1
-
-@description('Max number of nodes for the cluster')
-@minValue(1)
-@maxValue(50)
-param maxAgentCount int = 3
+//Application Gateway Parameters
+@description('The name of the Application Gateway')
+param applicationGatewayName string = 'appgw${workloadIdentifier}${resourceInstance}'
 
 //********************************************************
 // Variables
 //********************************************************
 
 var azureRbacContributorRoleId = 'b24988ac-6180-42a0-ab88-20f7382dd24c' //Contributor
+var applicationGatewayId = resourceId('Microsoft.Network/applicationGateways', applicationGatewayName) //Workaround for referencing App Gateway ID
 
 //********************************************************
 // Resources
 //********************************************************
 
 //Container Registry
-resource r_containerRegistry 'Microsoft.KeyVault/vaults@2021-04-01-preview' existing = if (useExistingContainerRegistry == true) {
+resource r_containerRegistry 'Microsoft.ContainerRegistry/registries@2019-05-01' existing = if (useExistingContainerRegistry == true) {
   name: containerRegistryName
   scope: resourceGroup(containerRegistryResourceGroupName)
 }
@@ -140,7 +113,7 @@ resource r_newContainerRegistry 'Microsoft.ContainerRegistry/registries@2019-05-
 }
 
 // Deploy Log Analytics Workspace
-resource r_keyVault 'Microsoft.KeyVault/vaults@2021-04-01-preview' existing = if (useExistingLogAnalyticsWorkspace == true) {
+resource r_logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-03-01-preview' existing = if (useExistingLogAnalyticsWorkspace == true) {
   name: logAnalyticsWorkspaceName
   scope: resourceGroup(logAnalyticsWorkspaceResourceGroupName)
 }
@@ -149,64 +122,298 @@ resource r_newLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@20
   name: logAnalyticsWorkspaceName
   location: location
   properties: {
-    retentionInDays: logAnalyticsWorkspaceRetentionPeriod
+    retentionInDays: 30
     sku: {
-      name: logAnalyticsWorkspaceSKU
+      name: 'PerGB2018'
     }
     workspaceCapping: {
-      dailyQuotaGb: logAnalyticsWorkspaceDailyQuota
+      dailyQuotaGb: 1
     }
   }
 }
 
+// Deploy Virtual Network
+resource r_vNet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
+  name: vNetName
+  location: location
+  properties: {
+    addressSpace: {
+      addressPrefixes: vNetIPAddressPrefixes
+    }
+  }
+}
+
+resource r_subNetAks 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = {
+  name: subnetAksName
+  parent: r_vNet
+  properties: {
+    addressPrefix: subnetAksIpAddressPrefix
+    privateEndpointNetworkPolicies: 'Enabled'
+    privateLinkServiceNetworkPolicies: 'Enabled'
+  }
+
+  dependsOn: [ r_subNetAppGw ]
+}
+
+resource r_subNetAppGw 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = {
+  name: subnetAppGwName
+  parent: r_vNet
+  properties: {
+    addressPrefix: subnetAppGwIpAddressPrefix
+    privateEndpointNetworkPolicies: 'Enabled'
+    privateLinkServiceNetworkPolicies: 'Enabled'
+  }
+}
+
 //Kubernetes Service
-resource r_aks 'Microsoft.ContainerService/managedClusters@2021-07-01' = {
+resource r_aks 'Microsoft.ContainerService/managedClusters@2022-04-02-preview' = {
   name: kubernetesServiceClusterName
   location: location
+  sku: {
+    name: 'Basic'
+    tier: 'Free'
+  }
   tags: {}
   identity: {
     type: 'SystemAssigned'
   }
   properties: {
-    kubernetesVersion: kubernetesVersion
-    enableRBAC: enableRBAC
+    kubernetesVersion: '1.22.6'
     dnsPrefix: dnsPrefix
     agentPoolProfiles: [
       {
         name: 'agentpool'
-        osDiskSizeGB: osDiskSizeGB
-        count: agentCount
-        enableAutoScaling: true
-        minCount: minAgentCount
-        maxCount: maxAgentCount
-        vmSize: agentVMSize
-        osType: 'Linux'
-        mode: 'System'
-        type: 'VirtualMachineScaleSets'
+        count: 2
+        vmSize: 'Standard_B2s'
+        osDiskSizeGB: 128
+        osDiskType: 'Managed'
+        kubeletDiskType: 'OS'
+        vnetSubnetID: r_subNetAks.id
         maxPods: 110
+        type: 'VirtualMachineScaleSets'
+        maxCount: 2
+        minCount: 1
+        enableAutoScaling: true
+        orchestratorVersion: '1.22.6'
+        enableNodePublicIP: false
+        mode: 'System'
+        osType: 'Linux'
+        osSKU: 'Ubuntu'
+        enableFIPS: false
       }
     ]
-    networkProfile: {
-      loadBalancerSku: 'standard'
-      networkPlugin: networkPlugin
+    servicePrincipalProfile: {
+      clientId: 'msi'
     }
     apiServerAccessProfile: {
-      enablePrivateCluster: enablePrivateCluster
+      enablePrivateCluster: false
     }
     addonProfiles: {
-      httpApplicationRouting: {
-        enabled: enableHttpApplicationRouting
+      azureKeyvaultSecretsProvider: {
+        enabled: false
       }
       azurepolicy: {
-        enabled: enableAzurePolicy
+        enabled: false
+      }
+      httpApplicationRouting: {
+        enabled: false
       }
       ingressApplicationGateway: {
-        enabled: enableIngressApplicationGateway
+        enabled: true
         config: {
-          applicationGatewayName: ingressApplicationGatewayName
-          subnetPrefix: ingressApplicationGatewaySubnetPrefix
+          applicationGatewayId: applicationGatewayId
+          effectiveApplicationGatewayId: applicationGatewayId
         }
       }
+      omsAgent: {
+        enabled: true
+        config: {
+          logAnalyticsWorkspaceResourceID: useExistingLogAnalyticsWorkspace ? r_logAnalyticsWorkspace.id : r_newLogAnalyticsWorkspace.id
+        }
+      }
+    }
+    nodeResourceGroup: '${resourceGroup().name}-${resourceInstance}-mngd'
+    enableRBAC: true
+    networkProfile: {
+      networkPlugin: 'azure'
+      loadBalancerSku: 'Standard'
+      loadBalancerProfile: {
+        managedOutboundIPs: {
+          count: 1
+        }
+        effectiveOutboundIPs: [
+          {
+            id: r_publicIpAddress.id
+          }
+        ]
+      }
+      serviceCidr: '10.0.0.0/16'
+      dnsServiceIP: '10.0.0.10'
+      dockerBridgeCidr: '172.17.0.1/16'
+      outboundType: 'loadBalancer'
+    }
+    storageProfile: {
+      diskCSIDriver: {
+        enabled: true
+        version: 'v1'
+      }
+      fileCSIDriver: {
+        enabled: true
+      }
+      snapshotController: {
+        enabled: true
+      }
+    }
+    oidcIssuerProfile: {
+      enabled: false
+    }
+  }
+}
+
+//Public IP Address
+resource r_publicIpAddress 'Microsoft.Network/publicIPAddresses@2020-11-01' = {
+  name: publicIpAddressName
+  location: location
+  sku: {
+    name: 'Standard'
+    tier: 'Regional'
+  }
+  properties: {
+    publicIPAddressVersion: 'IPv4'
+    publicIPAllocationMethod: 'Static'
+    idleTimeoutInMinutes: 4
+  }
+}
+
+//Application Gateway
+resource r_applicationGateway 'Microsoft.Network/applicationGateways@2020-11-01' = {
+  name: applicationGatewayName
+  location: location
+  properties: {
+    sku: {
+      name: 'Standard_v2'
+      tier: 'Standard_v2'
+    }
+    gatewayIPConfigurations: [
+      {
+        name: 'appGatewayIpConfig'
+        properties: {
+          subnet: {
+            id: r_subNetAppGw.id
+          }
+        }
+      }
+    ]
+    frontendIPConfigurations: [
+      {
+        name: 'appGwPublicFrontendIp'
+        properties: {
+          privateIPAllocationMethod: 'Dynamic'
+          publicIPAddress: {
+            id: r_publicIpAddress.id
+          }
+        }
+      }
+    ]
+    frontendPorts: [
+      {
+        name: 'port_80'
+        properties: {
+          port: 80
+        }
+      }
+    ]
+    backendAddressPools: [
+      {
+        name: 'defaultaddresspool'
+        properties: {
+          backendAddresses: []
+        }
+      }
+    ]
+    backendHttpSettingsCollection: [
+      {
+        name: 'defaulthttpsetting'
+        properties: {
+          port: 80
+          protocol: 'Http'
+          cookieBasedAffinity: 'Disabled'
+          pickHostNameFromBackendAddress: false
+          requestTimeout: 30
+          probe: {
+            id: '${applicationGatewayId}/probes/defaultprobe-Http'
+          }
+        }
+      }
+    ]
+    httpListeners: [
+      {
+        name: 'fl-e1903c8aa3446b7b3207aec6d6ecba8a'
+        properties: {
+          frontendIPConfiguration: {
+            id: '${applicationGatewayId}/frontendIPConfigurations/appGwPublicFrontendIp'
+          }
+          frontendPort: {
+            id: '${applicationGatewayId}/frontendPorts/port_80'
+          }
+          protocol: 'Http'
+          hostNames: []
+          requireServerNameIndication: false
+        }
+      }
+    ]
+    urlPathMaps: []
+    requestRoutingRules: [
+      {
+        name: 'rr-e1903c8aa3446b7b3207aec6d6ecba8a'
+        properties: {
+          ruleType: 'Basic'
+          httpListener: {
+            id: '${applicationGatewayId}/httpListeners/fl-e1903c8aa3446b7b3207aec6d6ecba8a'
+          }
+          backendAddressPool: {
+            id: '${applicationGatewayId}/backendAddressPools/defaultaddresspool'
+          }
+          backendHttpSettings: {
+            id: '${applicationGatewayId}/backendHttpSettingsCollection/defaulthttpsetting'
+          }
+        }
+      }
+    ]
+    probes: [
+      {
+        name: 'defaultprobe-Http'
+        properties: {
+          protocol: 'Http'
+          host: 'localhost'
+          path: '/'
+          interval: 30
+          timeout: 30
+          unhealthyThreshold: 3
+          pickHostNameFromBackendHttpSettings: false
+          minServers: 0
+          match: {}
+        }
+      }
+      {
+        name: 'defaultprobe-Https'
+        properties: {
+          protocol: 'Https'
+          host: 'localhost'
+          path: '/'
+          interval: 30
+          timeout: 30
+          unhealthyThreshold: 3
+          pickHostNameFromBackendHttpSettings: false
+          minServers: 0
+          match: {}
+        }
+      }
+    ]
+    enableHttp2: false
+    autoscaleConfiguration: {
+      minCapacity: 0
+      maxCapacity: 3
     }
   }
 }
@@ -215,13 +422,33 @@ resource r_aks 'Microsoft.ContainerService/managedClusters@2021-07-01' = {
 // RBAC Role Assignments
 //********************************************************
 
-// Assign Contributor Role to AKS Service MSI in the Container Registry
-resource acrName_Microsoft_Authorization_guidValue 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(kubernetesServiceClusterName, containerRegistryName, 'Contributor')
+resource r_aksContainerRegistryAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = if (useExistingContainerRegistry == false) {
+  name: guid(kubernetesServiceClusterName, containerRegistryName, 'contributor')
+  scope: useExistingContainerRegistry ? r_containerRegistry : r_newContainerRegistry
   properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', azureRbacContributorRoleId)
     principalId: r_aks.identity.principalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+resource r_aksAppGatewayAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  name: guid(kubernetesServiceClusterName, applicationGatewayName, 'contributor')
+  scope: resourceGroup()
+  properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', azureRbacContributorRoleId)
+    principalId: r_aks.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource r_agicAppGatewayAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  name: guid(kubernetesServiceClusterName, 'agic', 'contributor')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', azureRbacContributorRoleId)
+    principalId: r_aks.properties.addonProfiles.ingressApplicationGateway.identity.objectId
+    principalType: 'ServicePrincipal'
   }
 }
 

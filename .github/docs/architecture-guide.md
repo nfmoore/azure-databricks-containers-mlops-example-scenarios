@@ -38,7 +38,9 @@ The following components are used as part of this design:
 - [Azure Container Registry](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-intro): managed and private Docker registry service based on the open-source Docker.
 - [Azure Data Lake Gen 2](https://docs.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction): scalable solution optimized for storing massive amounts of unstructured data.
 - [Azure Monitor](https://docs.microsoft.com/en-us/azure/azure-monitor/overview): a comprehensive solution for collecting, analyzing, and acting on telemetry from your workloads.
-- [MLFlow](https://docs.microsoft.com/en-us/azure/databricks/applications/mlflow): open-source solution integrated within Databricks for managing the end-to-end machine learning life cycle.
+- [MLflow](https://docs.microsoft.com/en-us/azure/databricks/applications/mlflow): open-source solution integrated within Databricks for managing the end-to-end machine learning life cycle.
+- [Azure API Management](https://docs.microsoft.com/en-us/azure/api-management/api-management-key-concepts): a fully managed service that enables customers to publish, secure, transform, maintain, and monitor APIs.
+- [Azure Application Gateway](https://docs.microsoft.com/en-us/azure/application-gateway/overview): a web traffic load balancer that enables you to manage traffic to your web applications.
 - [Azure DevOps](https://azure.microsoft.com/solutions/devops/) or [GitHub](https://azure.microsoft.com/products/github/): solutions for implementing DevOps practices to enforce automation and compliance with your workload development and deployment pipelines.
 
 > **NOTE:**
@@ -60,15 +62,6 @@ Before implementing this solution some factors you might want to consider, inclu
 ## Pricing
 
 All services deployed in this solution use a consumption-based pricing model. The [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator) can be used to estimate costs for a specific scenario. For other considerations, see [Cost Optimization](https://docs.microsoft.com/en-us/azure/architecture/framework/#cost-optimization) in the Well-Architected Framework.
-
-## Deploy this scenario
-
-A proof-of-concept implementation of this scenario is available at the [MLOps Platform using Databricks and Kubernetes](https://github.com/nfmoore/databricks-kubernetes-mlops-poc) repository. This sample illustrates:
-
-- How an MLFlow model can be trained on Databricks.
-- How to package models as a web service using open-source tools.
-- How to deploy to Kubernetes via CI/CD.
-- How to monitor API performance and model data drift.
 
 ## Related resources
 
