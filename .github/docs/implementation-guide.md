@@ -9,7 +9,7 @@
 
 ### 1.1. Create repository
 
-Log in to your GitHub account, navigate to the [databricks-kubernetes-mlops-poc](https://github.com/nfmoore/databricks-kubernetes-mlops-poc) repository and click `use this template` to create a new repository from this template. Rename the template and leave it public. Use [these](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) instructions for more details about creating a repository from a template.
+Log in to your GitHub account, navigate to the [databricks-kubernetes-online-inference-poc](https://github.com/nfmoore/databricks-kubernetes-online-inference-poc) repository and click `use this template` to create a new repository from this template. Rename the template and leave it public. Use [these](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) instructions for more details about creating a repository from a template.
 
 ### 1.2. Deploy resources
 
