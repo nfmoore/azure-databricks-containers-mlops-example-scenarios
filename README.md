@@ -1,4 +1,4 @@
-# Proof-of-Concept: MLOps Platform using Databricks and Kubernetes
+# Proof-of-Concept: Online Inference with Databricks and Kubernetes on Azure
 
 ## Overview
 
