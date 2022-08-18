@@ -7,6 +7,6 @@ python_dotenv==0.19
 alibi-detect==0.8.1
 mlflow-skinny==1.21.0
 scikit-learn
-numpy==1.21.0
+numpy==1.22.0
 pandas==1.2.4
 scikit-learn==0.24.1
