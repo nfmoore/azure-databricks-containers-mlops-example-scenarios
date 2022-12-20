@@ -23,7 +23,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.8
           cache: pip
@@ -103,13 +103,14 @@ jobs:
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create image pull secret for ACR
-        uses: azure/k8s-create-secret@v3
+        uses: azure/k8s-create-secret@v4
         with:
           container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
+        id: create-secret
 
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v4
@@ -156,13 +157,14 @@ jobs:
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create image pull secret for ACR
-        uses: azure/k8s-create-secret@v3
+        uses: azure/k8s-create-secret@v4
         with:
           container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
+        id: create-secret
 
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v4
