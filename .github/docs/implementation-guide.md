@@ -45,7 +45,7 @@ Next, you will need to create a cluster and install libraries that are not part 
 
 - `Cluster Name`: enter a name for your cluster.
 - `Cluster Mode`: select the `Single Node` option to reduce costs when executing this proof-of-concept.
-- `Databricks Runtime Version`: select `Runtime: 10.1 ML` from the dropdown.
+- `Databricks Runtime Version`: select `Runtime: 10.4 ML` from the dropdown.
 - `Advanced Options - Environment Variables`: add environment variables to the cluster that specify details for your Kaggle account (more information below).
 
 ![1-6](.github/../images/implementation/1-6.png)

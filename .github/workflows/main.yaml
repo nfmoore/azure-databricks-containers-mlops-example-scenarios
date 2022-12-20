@@ -16,14 +16,14 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Azure login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.8
           cache: pip
@@ -73,7 +73,7 @@ jobs:
           envsubst < manifests/api.yaml > artifacts/manifest.yaml
 
       - name: Upload model package artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: build-artifacts
           path: artifacts
@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build-artifacts
 
@@ -97,24 +97,23 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set target Kubernetes cluster
-        uses: azure/aks-set-context@v1
+        uses: azure/aks-set-context@v3
         with:
-          creds: "${{ secrets.AZURE_CREDENTIALS }}"
           cluster-name: ${{ secrets.KUBERNETES_NAME }}
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create image pull secret for ACR
-        uses: azure/k8s-create-secret@v1
+        uses: azure/k8s-create-secret@v4
         with:
           container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
-          arguments: --force true
+        id: create-secret
 
       - name: Deploy to AKS
-        uses: azure/k8s-deploy@v1
+        uses: azure/k8s-deploy@v4
         with:
           manifests: |
             manifest.yaml
@@ -142,7 +141,7 @@ jobs:
 
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: build-artifacts
 
@@ -152,24 +151,23 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set target Kubernetes cluster
-        uses: azure/aks-set-context@v1
+        uses: azure/aks-set-context@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
           cluster-name: ${{ secrets.KUBERNETES_NAME }}
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create image pull secret for ACR
-        uses: azure/k8s-create-secret@v1
+        uses: azure/k8s-create-secret@v4
         with:
           container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
-          arguments: --force true
+        id: create-secret
 
       - name: Deploy to AKS
-        uses: azure/k8s-deploy@v1
+        uses: azure/k8s-deploy@v4
         with:
           manifests: |
             manifest.yaml

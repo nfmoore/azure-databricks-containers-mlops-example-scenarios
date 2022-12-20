@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.7.4.23292",
-      "templateHash": "11249594560110901485"
+      "version": "0.13.1.58284",
+      "templateHash": "18065729359224622542"
     }
   },
   "parameters": {
@@ -18,7 +18,9 @@
     },
     "vNetIPAddressPrefixesForFirstDeployment": {
       "type": "array",
-      "defaultValue": ["192.168.0.0/16"],
+      "defaultValue": [
+        "192.168.0.0/16"
+      ],
       "metadata": {
         "description": "Virtual Network IP Address Prefixes"
       }
@@ -39,7 +41,9 @@
     },
     "vNetIPAddressPrefixesForSecondDeployment": {
       "type": "array",
-      "defaultValue": ["192.167.0.0/16"],
+      "defaultValue": [
+        "192.167.0.0/16"
+      ],
       "metadata": {
         "description": "Virtual Network IP Address Prefixes"
       }
@@ -83,8 +87,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.7.4.23292",
-              "templateHash": "4946712618916781199"
+              "version": "0.13.1.58284",
+              "templateHash": "6605471823497372116"
             }
           },
           "parameters": {
@@ -126,7 +130,10 @@
             "pricingTier": {
               "type": "string",
               "defaultValue": "standard",
-              "allowedValues": ["standard", "premium"],
+              "allowedValues": [
+                "standard",
+                "premium"
+              ],
               "metadata": {
                 "description": "The pricing tier of workspace."
               }
@@ -294,8 +301,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.7.4.23292",
-              "templateHash": "16635969449397563854"
+              "version": "0.13.1.58284",
+              "templateHash": "4754783924999976762"
             }
           },
           "parameters": {
@@ -378,7 +385,9 @@
             },
             "vNetIPAddressPrefixes": {
               "type": "array",
-              "defaultValue": ["192.168.0.0/16"],
+              "defaultValue": [
+                "192.168.0.0/16"
+              ],
               "metadata": {
                 "description": "Virtual Network IP Address Prefixes"
               }
@@ -526,7 +535,7 @@
                 "type": "SystemAssigned"
               },
               "properties": {
-                "kubernetesVersion": "1.22.6",
+                "kubernetesVersion": "1.23.12",
                 "dnsPrefix": "[parameters('dnsPrefix')]",
                 "agentPoolProfiles": [
                   {
@@ -808,7 +817,7 @@
               "name": "[guid(parameters('kubernetesServiceClusterName'), 'agic', 'contributor')]",
               "properties": {
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('azureRbacContributorRoleId'))]",
-                "principalId": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName'))).addonProfiles.ingressApplicationGateway.identity.objectId]",
+                "principalId": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName')), '2022-04-02-preview').addonProfiles.ingressApplicationGateway.identity.objectId]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
@@ -819,7 +828,7 @@
           "outputs": {
             "controlPlaneFQDN": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName'))).fqdn]"
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName')), '2022-04-02-preview').fqdn]"
             },
             "containerRegistryName": {
               "type": "string",
@@ -865,10 +874,10 @@
             "value": true
           },
           "containerRegistryName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'm_microservices_01')).outputs.containerRegistryName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'm_microservices_01'), '2020-10-01').outputs.containerRegistryName.value]"
           },
           "logAnalyticsWorkspaceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'm_microservices_01')).outputs.logAnalyticsWorkspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'm_microservices_01'), '2020-10-01').outputs.logAnalyticsWorkspaceName.value]"
           }
         },
         "template": {
@@ -877,8 +886,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.7.4.23292",
-              "templateHash": "16635969449397563854"
+              "version": "0.13.1.58284",
+              "templateHash": "4754783924999976762"
             }
           },
           "parameters": {
@@ -961,7 +970,9 @@
             },
             "vNetIPAddressPrefixes": {
               "type": "array",
-              "defaultValue": ["192.168.0.0/16"],
+              "defaultValue": [
+                "192.168.0.0/16"
+              ],
               "metadata": {
                 "description": "Virtual Network IP Address Prefixes"
               }
@@ -1109,7 +1120,7 @@
                 "type": "SystemAssigned"
               },
               "properties": {
-                "kubernetesVersion": "1.22.6",
+                "kubernetesVersion": "1.23.12",
                 "dnsPrefix": "[parameters('dnsPrefix')]",
                 "agentPoolProfiles": [
                   {
@@ -1391,7 +1402,7 @@
               "name": "[guid(parameters('kubernetesServiceClusterName'), 'agic', 'contributor')]",
               "properties": {
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('azureRbacContributorRoleId'))]",
-                "principalId": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName'))).addonProfiles.ingressApplicationGateway.identity.objectId]",
+                "principalId": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName')), '2022-04-02-preview').addonProfiles.ingressApplicationGateway.identity.objectId]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
@@ -1402,7 +1413,7 @@
           "outputs": {
             "controlPlaneFQDN": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName'))).fqdn]"
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('kubernetesServiceClusterName')), '2022-04-02-preview').fqdn]"
             },
             "containerRegistryName": {
               "type": "string",
