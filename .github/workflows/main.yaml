@@ -99,12 +99,12 @@ jobs:
       - name: Set target Kubernetes cluster
         uses: azure/aks-set-context@v3
         with:
-          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
           cluster-name: ${{ secrets.KUBERNETES_NAME }}
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create image pull secret for ACR
-        uses: azure/k8s-create-secret@v2
+        uses: azure/k8s-create-secret@v3
         with:
           container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
@@ -114,7 +114,7 @@ jobs:
           arguments: --force true
 
       - name: Deploy to AKS
-        uses: azure/k8s-deploy@v4
+        uses: azure/k8s-deploy@v3
         with:
           manifests: |
             manifest.yaml
@@ -159,7 +159,7 @@ jobs:
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
       - name: Create image pull secret for ACR
-        uses: azure/k8s-create-secret@v2
+        uses: azure/k8s-create-secret@v3
         with:
           container-registry-url: ${{ secrets.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container-registry-username: ${{ secrets.CONTAINER_REGISTRY_NAME }}
