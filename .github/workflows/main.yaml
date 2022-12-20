@@ -99,7 +99,6 @@ jobs:
       - name: Set target Kubernetes cluster
         uses: azure/aks-set-context@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
           cluster-name: ${{ secrets.KUBERNETES_NAME }}
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
@@ -111,10 +110,9 @@ jobs:
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
-          arguments: --force true
 
       - name: Deploy to AKS
-        uses: azure/k8s-deploy@v3
+        uses: azure/k8s-deploy@v4
         with:
           manifests: |
             manifest.yaml
@@ -154,7 +152,6 @@ jobs:
       - name: Set target Kubernetes cluster
         uses: azure/aks-set-context@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
           cluster-name: ${{ secrets.KUBERNETES_NAME }}
           resource-group: ${{ secrets.KUBERNETES_RESOURCE_GROUP }}
 
@@ -166,7 +163,6 @@ jobs:
           container-registry-password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
           secret-name: ${{ secrets.CONTAINER_REGISTRY_IMAGE_PULL_SECRET }}
           namespace: default
-          arguments: --force true
 
       - name: Deploy to AKS
         uses: azure/k8s-deploy@v4
