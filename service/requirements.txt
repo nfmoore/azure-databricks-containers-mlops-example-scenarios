@@ -9,4 +9,4 @@ mlflow-skinny==1.21.0
 scikit-learn
 numpy==1.22.0
 pandas==1.2.4
-scikit-learn==0.24.1
+scikit-learn==1.0.1
