@@ -1,32 +1,36 @@
-# Proof-of-Concept: Online Inference with Databricks and Kubernetes on Azure
+# Example Scenarios: Containerizing Machine Learning Models for Online Inference with Azure Databricks
 
-## Overview
+## :books: Overview
 
-> For additional insights into applying this approach to operationalize your machine learning workloads refer to this article — [Machine Learning at Scale with Databricks and Kubernetes](https://medium.com/@nfmoore/machine-learning-at-scale-with-databricks-and-kubernetes-9fa59232bfa6)
-This repository contains resources for an end-to-end proof of concept which illustrates how an MLFlow model can be trained on Databricks, packaged as a web service, deployed to Kubernetes via CI/CD, and monitored within Microsoft Azure. A high-level solution design is shown below:
+This repository provides prescriptive guidance when building, deploying, and monitoring machine learning models with [Azure Databricks](https://learn.microsoft.com/azure/databricks/introduction/) for online inference scenarios in line with MLOps principles and practices.
 
-![workflow](.github/docs/images/workflow.png)
+MLOps is a set of repeatable, automated, and collaborative workflows with best practices that empower teams of ML professionals to quickly and easily get their machine learning models deployed into production.
 
-Within Azure Databricks, the `IBM HR Analytics Employee Attrition & Performance` [dataset](https://www.kaggle.com/pavansubhasht/ibm-hr-analytics-attrition-dataset) available from Kaggle will be used to develop and register a machine learning model. This model will predict the likelihood of attrition for an employee along with metrics capturing data drift and outliers to access the model's validity.
+## :computer: Getting Started
 
-This model will then be deployed as an API for real-time inference using Azure Kubernetes  Service. This API can be integrated with external applications used by HR teams to provide additional insights into the likelihood of attrition for a given employee within the organization. This information can be used to determine if a high-impact employee is likely to leave the organization and hence provide HR with the ability to proactively incentivize the employee to stay.
+This repository will focus on online inference scenarios that integrate Azure Databricks with other Azure services to deploy machine learning models as web services. Out-of-the-box capabilities of Azure Databricks will be used to build machine learning models, but the deployment and monitoring of these models will be done using Azure Container Apps or Azure Kubernetes Service.
 
-The design covered in this proof-of-concept can be generalized to many machine learning workloads. For more information on a generic solution design see the [Architecture Guide](.github/docs/architecture-guide.md).
+All example scenarios will focus on classical machine learning problems. An adapted version of the `UCI Credit Card Client Default` [dataset](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients) will be used to illustrate each example scenario. The data is available in the `data` directory of this repository.
 
-## Getting Started
+### Setup
 
-This repository contains detailed step-by-step instructions on how to implement this solution in your Microsoft Azure subscription. At a high-level an implementation contains four main stages:
+Detailed instructions for deploying this proof-of-concept are outlined in the [Step-by-Step Setup](.github/docs/step-by-step.md) section of this repository. This proof-of-concept will illustrate how to:
 
-- **Infrastructure Setup:** this includes an Azure Databricks workspace, an Azure Log Analytics workspace, an Azure Container Registry, and 2 Azure Kubernetes clusters (for a staging and production environment respectively).
+- Build a machine learning model on Azure Databricks.
+- Containerize the machine learning model.
+- Deploy the machine learning model as a web service using Azure Container Apps or Azure Kubernetes Service.
+- Develop automated workflows to build and deploy models.
+- Monitor the machine learning model for usage, performance, and data drift.
 
-- **Model Development:** this includes core components of the model development process such as experiment tracking and model registration. An Azure Databricks Workspace will be used to develop three MLFlow models to generate predictions, access data drift and determine outliers.
+### Example Scenarios
 
-- **Model Deployment:** this includes implementing a CI/CD pipeline with GitHub Actions to package a MLFlow model as an API for model serving. [FastAPI](https://fastapi.tiangolo.com) will be used to develop the web API for deployment. This will be containerized and deployed on separate Azure Kubernetes clusters for Staging and Production respectively.
+This proof-of-concept will cover the following example scenarios:
 
-- **Model Monitoring:** this includes using Azure Monitor for containers to monitor the health and performance of the API. In addition, Log Analytics will be used to monitor data drift and outliers by analysing log telemetry.
+| Example Scenario | Description |
+| ---------------- | ----------- |
+| Azure Container Apps | Build a machine learning model on Azure Databricks, containerize it, and deploy it as a web service using Azure Container Apps. |
+| Azure Kubernetes Service | Build a machine learning model on Azure Databricks, containerize it, and deploy it as a web service using Azure Kubernetes Service. |
 
-For detailed step-by-step instructions see the [Implementation Guide](.github/docs/implementation-guide.md).
-
-## License
+## :balance_scale: License
 
 Details on licensing for the project can be found in the [LICENSE](./LICENSE) file.
