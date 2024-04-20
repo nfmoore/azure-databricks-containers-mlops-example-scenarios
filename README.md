@@ -10,7 +10,7 @@ MLOps is a set of repeatable, automated, and collaborative workflows with best p
 
 This repository will focus on online inference scenarios that integrate Azure Databricks with other Azure services to deploy machine learning models as web services. Out-of-the-box capabilities of Azure Databricks will be used to build machine learning models, but the deployment and monitoring of these models will be done using Azure Container Apps or Azure Kubernetes Service.
 
-All example scenarios will focus on classical machine learning problems. An adapted version of the `UCI Credit Card Client Default` [dataset](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients) will be used to illustrate each example scenario. The data is available in the `data` directory of this repository.
+All example scenarios will focus on classical machine learning problems. An adapted version of the `UCI Credit Card Client Default` [dataset](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients) will be used to illustrate each example scenario. The data is available in the `core/data` directory of this repository.
 
 ### Setup
 
