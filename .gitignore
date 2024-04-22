@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # Custom
-employee_attrition_model
 .DS_Store
+.databricks
