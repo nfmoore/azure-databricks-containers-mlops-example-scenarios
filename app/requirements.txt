@@ -1,3 +1,8 @@
+# App
+fastapi==0.110.2
+uvicorn==0.29.0
+
+# Model
 mlflow==2.9.2
 cloudpickle==2.0.0
 configparser==5.2.0
