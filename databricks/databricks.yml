@@ -4,8 +4,5 @@ bundle:
 include:
   - resources/*.yml
 
-targets:
-  development:
-    default: true
-    workspace:
-      host: adb-984106429140777.17.azuredatabricks.net
+workspace:
+  host: <your-databricks-host>
