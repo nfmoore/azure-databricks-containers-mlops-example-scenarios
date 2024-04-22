@@ -24,7 +24,7 @@ resources:
             base_parameters:
               curated_dataset_table: ${var.curated_dataset_table}
               experiment_name: ${var.experiment_name}
-        - task_key: register-model
+        - task_key: register_model
           job_cluster_key: train_register_model_job_cluster
           depends_on:
             - task_key: train_model
