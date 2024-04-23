@@ -22,9 +22,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     A context manager to initialize and clean up the ML models.
     """
-    print(os.getcwd())
+    print(os.getenv("MODEL_DIRECTORY", "./app/model"))
     # Load the ML model
-    ml_models["credit_default"] = mlflow.pyfunc.load_model("./app/model")
+    ml_models["credit_default"] = mlflow.pyfunc.load_model(
+        os.getenv("MODEL_DIRECTORY", "./app/model")
+    )
     yield
     # Clean up the ML models and release the resources
     ml_models.clear()
