@@ -1,11 +1,24 @@
-FROM python:3.11.4
-WORKDIR /code
-COPY ./requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
-RUN apt-get update
-RUN apt-get install ffmpeg libsm6 libxext6  -y
-COPY ./model.py /code/model.py
-COPY ./main.py /code/main.py
-COPY ./model /code/model
+FROM python:3.10
+
+WORKDIR /app
+
+COPY ./requirements.txt /app/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r /app/requirements.txt
+
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ./model.py /app/model.py
+
+COPY ./main.py /app/main.py
+
+COPY ./model /app/model
+
 EXPOSE 5000
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]

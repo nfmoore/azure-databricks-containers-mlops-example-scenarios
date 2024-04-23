@@ -4,27 +4,27 @@ import json
 import logging
 import os
 import uuid
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 
 import mlflow
 import pandas as pd
 import uvicorn
 from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
-from model import LoanApplicant
+from fastapi.concurrency import asynccontextmanager
+from model import LoanApplicant, ModelOutput
 
 # Initialize the ML models
 ml_models = {}
 
 
 @asynccontextmanager
-async def lifespan() -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     A context manager to initialize and clean up the ML models.
     """
+    print(os.getcwd())
     # Load the ML model
-    ml_models["credit_default"] = mlflow.pyfunc.load_model("./model")
+    ml_models["credit_default"] = mlflow.pyfunc.load_model("./app/model")
     yield
     # Clean up the ML models and release the resources
     ml_models.clear()
@@ -38,8 +38,8 @@ app = FastAPI(
 )
 
 
-@app.post("/predict")
-async def predict(data: List[LoanApplicant]) -> str:
+@app.post("/predict", response_model=ModelOutput)
+async def predict(data: list[LoanApplicant]) -> str:
     """
     An endpoint to make predictions on the input data.
 
@@ -49,44 +49,40 @@ async def predict(data: List[LoanApplicant]) -> str:
     Returns:
         response (str): A JSON response containing the model predictions.
     """
-
     # Parse data
-    input_df = pd.DataFrame(jsonable_encoder(data))
+    input_df = pd.DataFrame(data)
 
     # Define UUID for the request
     request_id = uuid.uuid4().hex
 
-    # Log input data
+    # Log inference data
     logging.info(
         json.dumps(
             {
                 "service_name": os.environ.get("SERVICE_NAME", "credit-default-api"),
-                "type": "InputData",
+                "type": "InferenceData",
                 "request_id": request_id,
                 "data": input_df.to_json(orient="records"),
             }
         )
     )
 
-    # Make predictions and log
+    # Generate predictions
     model_output = ml_models["credit_default"].predict(input_df)
 
-    # Log output data
+    # Log model outputs
     logging.info(
         json.dumps(
             {
                 "service_name": os.environ.get("SERVICE_NAME", "credit-default-api"),
-                "type": "OutputData",
+                "type": "ModelOutput",
                 "request_id": request_id,
                 "data": model_output,
             }
         )
     )
 
-    # Make response payload
-    response_payload = jsonable_encoder(model_output)
-
-    return response_payload
+    return model_output
 
 
 # Configure logging

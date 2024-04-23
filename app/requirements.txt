@@ -8,7 +8,7 @@ cloudpickle==2.0.0
 configparser==5.2.0
 psutil==5.9.0
 scikit-learn==1.1.1
-typing-extensions==4.4.0
+typing-extensions==4.8.0
 alibi-detect==0.12.0
 joblib==1.2.0
 numpy==1.23.5
