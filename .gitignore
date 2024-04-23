@@ -131,3 +131,5 @@ dmypy.json
 # Custom
 .DS_Store
 .databricks
+mlruns/
+app/model/
