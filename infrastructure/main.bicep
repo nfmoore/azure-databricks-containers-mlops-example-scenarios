@@ -25,6 +25,8 @@ var resources = {
   databricksName: 'dbw01${serviceSuffix}'
   logAnalyticsWorkspaceName: 'log01${serviceSuffix}'
   storageAccountName: 'st01${serviceSuffix}'
+  containerAppEnvironmnetStagingName: 'cae01${serviceSuffix}'
+  containerAppEnvironmnetProductionName: 'cae02${serviceSuffix}'
 }
 
 //********************************************************
@@ -105,6 +107,27 @@ module databricks './modules/databricks.bicep' = {
   }
 }
 
+module containerAppsEnvironment './modules/container-app-environment.bicep' = {
+  name: '${resources.containerAppEnvironmnetStagingName}-deployment'
+  scope: resourceGroup
+  params: {
+    name: resources.containerAppEnvironmnetStagingName
+    location: location
+    tags: {
+      environment: 'staging'
+    }
+    logAnalyticsWorkspaceName: logAnalyticsWorkspace.outputs.name
+    logAnalyticsWorkspaceResourceGroupName: resourceGroup.name
+  }
+}
+
 //********************************************************
 // Outputs
 //********************************************************
+
+output storageAccountName string = storageAccount.outputs.name
+output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.outputs.name
+output applicationInsightsName string = applicationInsights.outputs.name
+output containerRegistryName string = containerRegistry.outputs.name
+output databricksName string = databricks.outputs.name
+output databricksHostname string = databricks.outputs.hostname

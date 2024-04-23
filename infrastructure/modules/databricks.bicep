@@ -74,3 +74,4 @@ resource roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
 
 output name string = dbwNew.name
 output id string = dbwNew.id
+output hostname string = dbwNew.properties.workspaceUrl
