@@ -25,6 +25,7 @@ var resources = {
   databricksName: 'dbw01${serviceSuffix}'
   logAnalyticsWorkspaceName: 'log01${serviceSuffix}'
   storageAccountName: 'st01${serviceSuffix}'
+  userAssignedIdentityName: 'id01${serviceSuffix}'
   containerAppEnvironmnetStagingName: 'cae01${serviceSuffix}'
   containerAppEnvironmnetProductionName: 'cae02${serviceSuffix}'
 }
@@ -41,6 +42,18 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2023-07-01' = {
 // ********************************************************
 // Modules
 // ********************************************************
+
+module userAssignedIdentity './modules/user-assigned-identity.bicep' = {
+  name: '${resources.userAssignedIdentityName}-deployment'
+  scope: resourceGroup
+  params: {
+    name: resources.userAssignedIdentityName
+    location: location
+    tags: {
+      environment: 'shared'
+    }
+  }
+}
 
 module storageAccount './modules/storage-account.bicep' = {
   name: '${resources.storageAccountName}-deployment'
@@ -90,6 +103,12 @@ module containerRegistry './modules/container-registry.bicep' = {
       environment: 'shared'
     }
     logAnalyticsWorkspaceId: logAnalyticsWorkspace.outputs.id
+    roles: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        id: '7f951dda-4ed3-4680-a7ca-43fe172d538d' // ACR Pull role
+      }
+    ]
   }
 }
 
@@ -107,19 +126,26 @@ module databricks './modules/databricks.bicep' = {
   }
 }
 
-module containerAppsEnvironment './modules/container-app-environment.bicep' = {
-  name: '${resources.containerAppEnvironmnetStagingName}-deployment'
-  scope: resourceGroup
-  params: {
-    name: resources.containerAppEnvironmnetStagingName
-    location: location
-    tags: {
-      environment: 'staging'
+var containerAppEnvironments = [
+  { name: resources.containerAppEnvironmnetStagingName, environment: 'staging' }
+  { name: resources.containerAppEnvironmnetProductionName, environment: 'production' }
+]
+
+module containerAppsEnvironment './modules/container-app-environment.bicep' = [
+  for containerAppEnvironment in containerAppEnvironments: {
+    name: '${containerAppEnvironment.name}-deployment'
+    scope: resourceGroup
+    params: {
+      name: containerAppEnvironment.name
+      location: location
+      tags: {
+        environment: containerAppEnvironment.environment
+      }
+      logAnalyticsWorkspaceName: logAnalyticsWorkspace.outputs.name
+      logAnalyticsWorkspaceResourceGroupName: resourceGroup.name
     }
-    logAnalyticsWorkspaceName: logAnalyticsWorkspace.outputs.name
-    logAnalyticsWorkspaceResourceGroupName: resourceGroup.name
   }
-}
+]
 
 //********************************************************
 // Outputs
