@@ -15,8 +15,7 @@ env:
   DATABRICKS_TOKEN:
   DATABRICKS_CLUSTER_ID:
 
-permissions:
-  permissions: write-all
+permissions: write-all
 
 jobs:
   build:
