@@ -202,5 +202,5 @@ jobs:
           existing-cluster-id: ${{ env.DATABRICKS_CLUSTER_ID }}
           notebook-params-json: >
             {
-              "path": "$DATA_TARGET_PATH"
+              "path": "${DATA_TARGET_PATH}"
             }
