@@ -23,7 +23,7 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Authenticate to Az CLI using OIDC
       - name: "Azure CLI login"
@@ -61,7 +61,7 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Authenticate to Az CLI using OIDC
       - name: "Azure CLI login"
@@ -99,7 +99,7 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Download output from deployment
       - uses: actions/download-artifact@v4
