@@ -7,9 +7,9 @@ env:
   AZ_CLI_VERSION: 2.59.0
   TEMPLATE_FILE: infrastructure/main.bicep
   DEPLOYMENT_LOCATION: ${{ vars.DEPLOYMENT_LOCATION }}
-  DEPLOYMENT_NAME: validate-${{ github.run_id }}
   DEPLOYMENT_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_RESOURCE_GROUP_NAME }}
   DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME }}
+  GITHUB_RUN_ID: ${{ github.run_id }}
 
 permissions:
   id-token: write
@@ -46,7 +46,7 @@ jobs:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
           inlineScript: |
             az deployment sub validate \
-              --name validate-${DEPLOYMENT_NAME} \
+              --name validate-${GITHUB_RUN_ID} \
               --template-file ${TEMPLATE_FILE} \
               --location ${DEPLOYMENT_LOCATION} \
               --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
@@ -148,8 +148,6 @@ jobs:
         run: |
           # Create artifacts directory
           mkdir artifacts
-
-          ls
 
           # Create Databricks cluster
           curl -X POST "$DATABRICKS_HOST/api/2.0/clusters/create" \
