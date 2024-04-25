@@ -137,8 +137,8 @@ jobs:
           mkdir artifacts
 
           # Create Databricks cluster
-          curl -X POST ${DATABRICKS_HOST}/api/2.0/clusters/create \
-            -H Authorization: Bearer ${DATABRICKS_TOKEN} \
+          curl -X POST "$DATABRICKS_HOST/api/2.0/clusters/create" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
             -d '{
                 "num_workers": 0,
                 "cluster_name": "${DATABRICKS_CLUSTER_NAME}",
