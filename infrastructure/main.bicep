@@ -11,7 +11,7 @@ param resourceGroupName string = 'rg-example-scenario-azure-databricks-online-in
 param mrgDatabricksName string = 'rgm-example-scenario-azure-databricks-online-inference-containers-databricks'
 
 @description('Location for resources')
-param location string = 'Australia East'
+param location string = 'australiaeast'
 
 //********************************************************
 // Variables
