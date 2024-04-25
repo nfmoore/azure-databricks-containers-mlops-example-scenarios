@@ -87,7 +87,7 @@ jobs:
               --location ${DEPLOYMENT_LOCATION} \
               --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
               --parameters mrgDatabricksName=${DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME} \
-              --parameters location=${DEPLOYMENT_LOCATION}
+              --parameters location=${DEPLOYMENT_LOCATION} \
               > artifacts/deployment-output.json
 
       # Upload output from deployment
@@ -182,3 +182,29 @@ jobs:
           databricks-token: ${{ env.DATABRICKS_TOKEN }}
           local-notebook-path: databricks/src/00-create-external-table.ipynb
           existing-cluster-id: ${{ env.DATABRICKS_CLUSTER_ID }}
+
+      - name: Set GitHub repository variables
+        env:
+          DATABASE_HOST: ${{ env.DATABRICKS_HOST }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # Add Databricks host to GitHub repository variables
+          gh variable set DATABRICKS_HOST --body "$DATABASE_HOST"
+
+          # Add user assigned identity name to GitHub repository variables
+          gh variable set USER_ASSIGNED_IDENTITY_NAME \
+            --body $(jq .properties.outputs.userAssignedIdentityName.value deployment-output.json)
+
+          # Add container registry name to GitHub repository variables
+          gh variable set CONTAINER_REGISTRY_NAME \
+            --body $(jq .properties.outputs.containerRegistryName.value deployment-output.json)
+
+          # Add container apps environment names to GitHub repository variables for staging environment
+          gh variable set CONTAINER_APPS_ENVIRONMENT_NAME \
+            --body $(jq .properties.outputs.containerAppEnvironmnetStagingName.value deployment-output.json) \
+            --env staging
+
+          # Add container apps environment names to GitHub repository variables for production environment
+          gh variable set CONTAINER_APPS_ENVIRONMENT_NAME \
+            --body $(jq .properties.outputs.containerAppEnvironmnetProductionName.value deployment-output.json) \
+            --env production
