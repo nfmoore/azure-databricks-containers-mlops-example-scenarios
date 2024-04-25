@@ -157,3 +157,6 @@ output applicationInsightsName string = applicationInsights.outputs.name
 output containerRegistryName string = containerRegistry.outputs.name
 output databricksName string = databricks.outputs.name
 output databricksHostname string = databricks.outputs.hostname
+output userAssignedIdentityName string = userAssignedIdentity.outputs.name
+output containerAppEnvironmnetStagingName string = containerAppsEnvironment[0].outputs.name
+output containerAppEnvironmnetProductionName string = containerAppsEnvironment[1].outputs.name
