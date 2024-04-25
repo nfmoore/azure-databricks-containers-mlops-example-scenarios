@@ -142,7 +142,7 @@ jobs:
           ls
 
           # Create Databricks cluster
-          curl -X POST "$DATABRICKS_HOST/api/2.0/clusters/create" \
+          curl -X POST "https://$DATABRICKS_HOST/api/2.0/clusters/create" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN" \
             -d '{
                 "num_workers": 0,
@@ -164,7 +164,8 @@ jobs:
                 "enable_local_disk_encryption": false,
                 "runtime_engine": "STANDARD"
             }' > artifacts/cluster-output.json
-
+            
+            # Display cluster output
             cat artifacts/cluster-output.json
 
       # Set Databricks cluster id environment variable
@@ -173,13 +174,31 @@ jobs:
           echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id artifacts/cluster-output.json -r)" >> $GITHUB_ENV
 
       # Upload files to DBFS
-      - name: upload-dbfs-temp
-        uses: databricks/upload-dbfs-temp@v0
-        id: upload-data
-        with:
-          local-path: databricks/data/curated.csv
-          databricks-host: ${{ env.DATABRICKS_HOST }}
-          databricks-token: ${{ env.DATABRICKS_TOKEN }}
+      # - name: upload-dbfs-temp
+      #   uses: databricks/upload-dbfs-temp@v0
+      #   id: upload-data
+      #   with:
+      #     local-path: databricks/data/curated.csv
+      #     databricks-host: ${{ env.DATABRICKS_HOST }}
+      #     databricks-token: ${{ env.DATABRICKS_TOKEN }}
+
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+      - name: Databricks CLI config
+        run: |
+          cat > ~/.databrickscfg << EOF 
+          [DEFAULT] 
+          host = ${{ env.DATABRICKS_HOST }} 
+          token = ${{ env.DATABRICKS_TOKEN }} 
+          EOF
+
+      # Upload files to DBFS
+      - name: Upload data to dbfs
+        run: |
+          databricks fs mkdir dbfs:/FileStore/tables/credit-card-default-uci-curated
+          databricks fs cp -r databricks/data/curated.csv dbfs:/FileStore/tables/credit-card-default-uci-curated/01.csv
 
       # Trigger notebook to create external tables
       - name: Create external tables
@@ -191,7 +210,7 @@ jobs:
           existing-cluster-id: ${{ env.DATABRICKS_CLUSTER_ID }}
           notebook-params-json: >
             {
-              "path": "${{ steps.upload-data.outputs.dbfs-file-path }}"
+              "path": "dbfs:/FileStore/tables/credit-card-default-uci-curated"
             }
       - name: Set GitHub repository variables
         env:
