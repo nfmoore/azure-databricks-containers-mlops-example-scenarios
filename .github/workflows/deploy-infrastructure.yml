@@ -147,12 +147,12 @@ jobs:
                 "enable_elastic_disk": true,
                 "enable_local_disk_encryption": false,
                 "runtime_engine": "STANDARD"
-            }' > artifacts/cluster-output.json
+            }' > cluster-output.json
 
       # Set Databricks cluster id environment variable
       - name: Set Databricks environment variables
         run: |
-          echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id artifacts/cluster-output.json -r)" >> $GITHUB_ENV
+          echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id cluster-output.json -r)" >> $GITHUB_ENV
 
       # Upload files to DBFS
       - name: upload-dbfs-temp
