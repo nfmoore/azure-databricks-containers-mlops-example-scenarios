@@ -1,4 +1,4 @@
-# Example Scenarios: Containerizing Machine Learning Models for Online Inference with Azure Databricks
+# Example Scenarios: MLOps with Azure Databricks using Containers for Online Inference
 
 ## :books: Overview
 
