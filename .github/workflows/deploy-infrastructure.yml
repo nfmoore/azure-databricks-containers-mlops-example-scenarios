@@ -11,11 +11,15 @@ env:
   DEPLOYMENT_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_RESOURCE_GROUP_NAME }}
   DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME }}
   TEMPLATE_FILE: infrastructure/main.bicep
+  DATA_SOURCE_FILE: databricks/data/curated.csv
+  DATA_TARGET_PATH: dbfs:/FileStore/data/credit-card-default-uci-curated
   DATABRICKS_HOST:
   DATABRICKS_TOKEN:
   DATABRICKS_CLUSTER_ID:
 
-permissions: write-all
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -131,6 +135,20 @@ jobs:
             echo "DATABRICKS_TOKEN=$(az account get-access-token \
               --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
 
+      # Install the Databricks CLI
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+      # Configure the Databricks CLI
+      - name: Databricks CLI config
+        run: |
+          cat > ~/.databrickscfg << EOF 
+          [DEFAULT] 
+          host = ${{ env.DATABRICKS_HOST }} 
+          token = ${{ env.DATABRICKS_TOKEN }} 
+          EOF
+
       # Create Databricks cluster
       - name: Create Databricks cluster
         run: |
@@ -167,36 +185,15 @@ jobs:
             cat artifacts/cluster-output.json
 
       # Set Databricks cluster id environment variable
-      - name: Set Databricks environment variables
+      - name: Set Databricks clister id
         run: |
           echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id artifacts/cluster-output.json -r)" >> $GITHUB_ENV
 
       # Upload files to DBFS
-      # - name: upload-dbfs-temp
-      #   uses: databricks/upload-dbfs-temp@v0
-      #   id: upload-data
-      #   with:
-      #     local-path: databricks/data/curated.csv
-      #     databricks-host: ${{ env.DATABRICKS_HOST }}
-      #     databricks-token: ${{ env.DATABRICKS_TOKEN }}
-
-      - name: Install Databricks CLI
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-
-      - name: Databricks CLI config
-        run: |
-          cat > ~/.databrickscfg << EOF 
-          [DEFAULT] 
-          host = ${{ env.DATABRICKS_HOST }} 
-          token = ${{ env.DATABRICKS_TOKEN }} 
-          EOF
-
-      # Upload files to DBFS
       - name: Upload data to dbfs
         run: |
-          databricks fs mkdir dbfs:/FileStore/tables/credit-card-default-uci-curated
-          databricks fs cp -r databricks/data/curated.csv dbfs:/FileStore/tables/credit-card-default-uci-curated/01.csv
+          databricks fs mkdir $DATA_TARGET_PATH
+          databricks fs cp -r $DATA_SOURCE_FILE $DATA_TARGET_PATH/01.csv
 
       # Trigger notebook to create external tables
       - name: Create external tables
@@ -208,30 +205,5 @@ jobs:
           existing-cluster-id: ${{ env.DATABRICKS_CLUSTER_ID }}
           notebook-params-json: >
             {
-              "path": "dbfs:/FileStore/tables/credit-card-default-uci-curated"
+              "path": "$DATA_TARGET_PATH"
             }
-      - name: Set GitHub repository variables
-        env:
-          DATABASE_HOST: ${{ env.DATABRICKS_HOST }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          # Add Databricks host to GitHub repository variables
-          gh variable set DATABRICKS_HOST --body "$DATABASE_HOST"
-
-          # Add user assigned identity name to GitHub repository variables
-          gh variable set USER_ASSIGNED_IDENTITY_NAME \
-            --body $(jq .properties.outputs.userAssignedIdentityName.value deployment-output.json)
-
-          # Add container registry name to GitHub repository variables
-          gh variable set CONTAINER_REGISTRY_NAME \
-            --body $(jq .properties.outputs.containerRegistryName.value deployment-output.json)
-
-          # Add container apps environment names to GitHub repository variables for staging environment
-          gh variable set CONTAINER_APPS_ENVIRONMENT_NAME \
-            --body $(jq .properties.outputs.containerAppEnvironmnetStagingName.value deployment-output.json) \
-            --env staging
-
-          # Add container apps environment names to GitHub repository variables for production environment
-          gh variable set CONTAINER_APPS_ENVIRONMENT_NAME \
-            --body $(jq .properties.outputs.containerAppEnvironmnetProductionName.value deployment-output.json) \
-            --env production
