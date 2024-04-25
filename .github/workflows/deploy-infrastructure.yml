@@ -77,6 +77,10 @@ jobs:
         with:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
           inlineScript: |
+            # Create artifacts directory
+            mkdir artifacts
+
+            # Deploy the Bicep template
             az deployment sub create \
               --name validate-${DEPLOYMENT_NAME} \
               --template-file ${TEMPLATE_FILE} \
@@ -84,12 +88,13 @@ jobs:
               --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
               --parameters mrgDatabricksName=${DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME} \
               --parameters location=${DEPLOYMENT_LOCATION}
-              > deployment-output.json
+              > artifacts/deployment-output.json
 
       # Upload output from deployment
       - uses: actions/upload-artifact@v4
         with:
-          path: deployment-output.json
+          name: artifacts
+          path: artifacts
 
   setup:
     name: Databricks Setup
@@ -102,6 +107,8 @@ jobs:
 
       # Download output from deployment
       - uses: actions/download-artifact@v4
+        with:
+          name: artifacts
 
       # Authenticate to Az CLI using OIDC
       - name: "Azure CLI login"
@@ -119,13 +126,17 @@ jobs:
           inlineScript: |
             echo "DATABRICKS_HOST=$(jq .properties.outputs.databricksHostname.value \
               deployment-output.json -r)" >> $GITHUB_ENV
-
+              
             echo "DATABRICKS_TOKEN=$(az account get-access-token \
               --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
 
       # Create Databricks cluster
       - name: Create Databricks cluster
         run: |
+          # Create artifacts directory
+          mkdir artifacts
+
+          # Create Databricks cluster
           curl -X POST ${DATABRICKS_HOST}/api/2.0/clusters/create \
             -H Authorization: Bearer ${DATABRICKS_TOKEN} \
             -d '{
@@ -147,12 +158,12 @@ jobs:
                 "enable_elastic_disk": true,
                 "enable_local_disk_encryption": false,
                 "runtime_engine": "STANDARD"
-            }' > cluster-output.json
+            }' > artifacts/cluster-output.json
 
       # Set Databricks cluster id environment variable
       - name: Set Databricks environment variables
         run: |
-          echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id cluster-output.json -r)" >> $GITHUB_ENV
+          echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id artifacts/cluster-output.json -r)" >> $GITHUB_ENV
 
       # Upload files to DBFS
       - name: upload-dbfs-temp
