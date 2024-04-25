@@ -127,7 +127,7 @@ jobs:
         with:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
           inlineScript: |
-            echo "DATABRICKS_HOST=$(jq .properties.outputs.databricksHostname.value \
+            echo "DATABRICKS_HOST=https://$(jq .properties.outputs.databricksHostname.value \
               deployment-output.json -r)" >> $GITHUB_ENV
               
             echo "DATABRICKS_TOKEN=$(az account get-access-token \
