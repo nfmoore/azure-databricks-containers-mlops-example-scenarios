@@ -142,7 +142,7 @@ jobs:
           ls
 
           # Create Databricks cluster
-          curl -X POST "https://$DATABRICKS_HOST/api/2.0/clusters/create" \
+          curl -X POST "$DATABRICKS_HOST/api/2.0/clusters/create" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN" \
             -d '{
                 "num_workers": 0,
