@@ -168,9 +168,10 @@ jobs:
       # Upload files to DBFS
       - name: upload-dbfs-temp
         uses: databricks/upload-dbfs-temp@v0
+        id: upload-data
         with:
           local-path: databricks/data/curated.csv
-          dbfs-temp-dir: dbfs:/FileStore/tables/credit-card-default-uci-curated/01.csv
+          dbfs-temp-dir: dbfs:/FileStore/data
           databricks-host: ${{ env.DATABRICKS_HOST }}
           databricks-token: ${{ env.DATABRICKS_TOKEN }}
 
@@ -182,7 +183,10 @@ jobs:
           databricks-token: ${{ env.DATABRICKS_TOKEN }}
           local-notebook-path: databricks/src/00-create-external-table.ipynb
           existing-cluster-id: ${{ env.DATABRICKS_CLUSTER_ID }}
-
+          notebook-params-json: >
+            {
+              "path": "${{ steps.upload-data.outputs.dbfs-file-path }}"
+            }
       - name: Set GitHub repository variables
         env:
           DATABASE_HOST: ${{ env.DATABRICKS_HOST }}
