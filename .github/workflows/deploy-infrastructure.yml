@@ -95,7 +95,7 @@ jobs:
   setup:
     name: Databricks Setup
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [deploy]
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
