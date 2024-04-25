@@ -139,6 +139,8 @@ jobs:
           # Create artifacts directory
           mkdir artifacts
 
+          ls
+
           # Create Databricks cluster
           curl -X POST "$DATABRICKS_HOST/api/2.0/clusters/create" \
             -H "Authorization: Bearer $DATABRICKS_TOKEN" \
@@ -163,6 +165,8 @@ jobs:
                 "runtime_engine": "STANDARD"
             }' > artifacts/cluster-output.json
 
+            cat artifacts/cluster-output.json
+
       # Set Databricks cluster id environment variable
       - name: Set Databricks environment variables
         run: |
@@ -174,7 +178,6 @@ jobs:
         id: upload-data
         with:
           local-path: databricks/data/curated.csv
-          dbfs-temp-dir: dbfs:/actions-tmp
           databricks-host: ${{ env.DATABRICKS_HOST }}
           databricks-token: ${{ env.DATABRICKS_TOKEN }}
 
