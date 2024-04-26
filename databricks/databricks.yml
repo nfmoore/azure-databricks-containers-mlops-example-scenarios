@@ -1,8 +1,8 @@
 bundle:
-  name: azure_databricks_online_inference_containers
+  name: azure_databricks_containers_mlops_example_scenarios
 
 include:
   - resources/*.yml
 
 workspace:
-  host: <your-databricks-host>
+  host: https://adb-984106429140777.17.azuredatabricks.net

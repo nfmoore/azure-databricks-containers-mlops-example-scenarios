@@ -1,9 +1,20 @@
+libraries: &libraries
+  libraries:
+    - pypi:
+        package: alibi-detect==0.12.0
+    - pypi:
+        package: configparser==7.0.0
+    - pypi:
+        package: mlflow==2.12.1
+    - pypi:
+        package: psutil==5.9.8
+
 variables:
   curated_dataset_table:
     default: hive_metastore.default.credit_default_uci_curated
   experiment_name:
     default: /online-inference-containers-examples-${bundle.target}
-  model_name: 
+  model_name:
     default: credit-default-uci-custom
 
 resources:
@@ -19,6 +30,7 @@ resources:
       tasks:
         - task_key: train_model
           job_cluster_key: train_register_model_job_cluster
+          <<: *libraries
           notebook_task:
             notebook_path: ../src/01-train-model.ipynb
             base_parameters:
@@ -28,9 +40,7 @@ resources:
           job_cluster_key: train_register_model_job_cluster
           depends_on:
             - task_key: train_model
-          libraries:
-            - pypi:
-                package: alibi-detect==0.12.0
+          <<: *libraries
           notebook_task:
             notebook_path: ../src/02-register-model.ipynb
             base_parameters:
