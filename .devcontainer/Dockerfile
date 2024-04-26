@@ -18,7 +18,7 @@ USER vscode
 
 # Add zsh-autosuggestions 
 RUN git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions
-RUN printf 'source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh\n' >> ~/.zshrc
+RUN printf 'source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh\n' >> ~/.zshrc
 
 # Add zsh-syntax-highlighting
 RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.zsh/zsh-syntax-highlighting
