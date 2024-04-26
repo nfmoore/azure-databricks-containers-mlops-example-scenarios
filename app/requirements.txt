@@ -1,4 +1,4 @@
-# App
+# API
 fastapi==0.110.2
 uvicorn==0.29.0
 
