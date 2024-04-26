@@ -13,20 +13,20 @@ variables:
   curated_dataset_table:
     default: hive_metastore.default.credit_default_uci_curated
   experiment_name:
-    default: /online-inference-containers-examples-${bundle.target}
+    default: /azure_databricks_containers_mlops_example_scenarios
   model_name:
     default: credit-default-uci-custom
 
 resources:
   jobs:
     train_register_model_job:
-      name: ${bundle.target}_train_register_model
+      name: train_register_model
       job_clusters:
         - job_cluster_key: train_register_model_job_cluster
           new_cluster:
             node_type_id: Standard_D4ads_v5
             num_workers: 1
-            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_version: 15.0.x-cpu-ml-scala2.12
       tasks:
         - task_key: train_model
           job_cluster_key: train_register_model_job_cluster
