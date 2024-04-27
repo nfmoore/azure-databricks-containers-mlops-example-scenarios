@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       # Authenticate to Az CLI using OIDC
-      - name: "Azure CLI login"
+      - name: Azure CLI login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v4
 
       # Authenticate to Az CLI using OIDC
-      - name: "Azure CLI login"
+      - name: Azure CLI login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -90,11 +90,12 @@ jobs:
               > artifacts/deployment-output.json
 
       # Upload output from deployment
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts
           path: artifacts
-
+          
   setup:
     name: Databricks Setup
     runs-on: ubuntu-latest
@@ -110,7 +111,7 @@ jobs:
           name: artifacts
 
       # Authenticate to Az CLI using OIDC
-      - name: "Azure CLI login"
+      - name: Azure CLI login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
