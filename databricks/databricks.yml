@@ -5,4 +5,4 @@ include:
   - resources/*.yml
 
 workspace:
-  host: https://adb-984106429140777.17.azuredatabricks.net
+  host: <your-databricks-host>

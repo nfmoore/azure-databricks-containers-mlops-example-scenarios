@@ -55,6 +55,12 @@ jobs:
               --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
             
             echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
+      
+      # Add host to databricks.yml
+      - name: Add databricks host
+        run: |
+          yq -i '.workspace.host = "$DATABRICKS_HOST"' databricks/src/databricks.yml.yml
+          cat databricks/src/databricks.yml
 
       # Install the Databricks CLI
       - name: Install Databricks CLI
