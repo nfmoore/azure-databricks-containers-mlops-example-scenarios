@@ -94,7 +94,11 @@ jobs:
           mkdir train-artifacts
 
           # Run train model workflow
-          databricks bundle run train_register_model_job --output json > train-artifacts/workflow-output.json
+          WORKFLOW_OUTPUT=$(databricks bundle run train_register_model_job --output json)
+          
+          # Write output to file
+          echo $WORKFLOW_OUTPUT
+          echo $WORKFLOW_OUTPUT > train-artifacts/workflow-output.json
 
           # Display workflow output
           cat train-artifacts/workflow-output.json
