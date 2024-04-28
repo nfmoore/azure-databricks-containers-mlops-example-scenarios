@@ -189,15 +189,15 @@ jobs:
       #     # Copy model to artifacts directory
       #     cp ./app/model artifacts/model -r
 
-      # # Build and push container image to ACR
-      # - name: Build and push container image
-      #   uses: azure/cli@v2
-      #   with:
-      #     azcliversion: ${{ env.AZ_CLI_VERSION }}
-      #     inlineScript: |
-      #       # Get container registry name
-      #       CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-      #                     | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
+      # Build and push container image to ACR
+      - name: Build and push container image
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
 
       #       # Log in to ACR
       #       az acr login --name $CONTAINER_REGISTRY_NAME -t
