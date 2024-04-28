@@ -128,6 +128,23 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+        # Set Databricks host and token environment variables and  MLFlow tracking URI
+      - name: Set Databricks environment variables
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            DATABRICKS_WORKSPACE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              | jq '.[] | select(.type == "Microsoft.Databricks/workspaces") | .name' -r)
+
+            echo "DATABRICKS_HOST=https://$(az databricks workspace show --name $DATABRICKS_WORKSPACE_NAME \
+              --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME | jq '.workspaceUrl' -r)" >> $GITHUB_ENV
+              
+            echo "DATABRICKS_TOKEN=$(az account get-access-token \
+              --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
+
+            echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
+
       # Set artifact model environment variables
       - name: Set model variables
         run: |
