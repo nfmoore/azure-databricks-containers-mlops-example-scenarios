@@ -90,8 +90,8 @@ jobs:
       # - name: Run workflow
       #   working-directory: databricks
       #   run: |
-      #     # Create artifacts directory
-      #     mkdir artifacts
+          # # Create artifacts directory
+          # mkdir artifacts
 
       #     # Run train model workflow
       #     databricks bundle run train_register_model_job > artifacts/workflow-output.json
@@ -266,6 +266,13 @@ jobs:
           echo ${{ steps.deploy_staging.outputs }}
           echo "CONTAINER_APP_ENDPOINT=${{ steps.deploy_staging.outputs.container_app_uri }}" >> $GITHUB_ENV
 
+      # Upload model from workflow run
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: artifacts
+
   test:
     name: Smoke Test
     runs-on: ubuntu-latest
@@ -277,9 +284,19 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+
       # Smoke test the deployed container app
       - name: Smoke test
         run: |
+          # Set the app endpoint
+          ls
+          cat containerapp.json
+          CONTAINER_APP_ENDPOINT=$(cat containerapp.json | jq '.properties.latestRevisionFqdn' -r)
+
           # Exit on error
           set -e
 

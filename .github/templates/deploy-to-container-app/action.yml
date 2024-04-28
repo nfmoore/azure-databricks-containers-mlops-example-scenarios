@@ -70,6 +70,10 @@ runs:
       with:
         azcliversion: ${{ env.AZ_CLI_VERSION }}
         inlineScript: |
+          # Create artifacts directory
+          mkdir artifacts
+
+          # Check if container app exists
           if az containerapp show --name $APP_NAME --resource-group ${{ inputs.resource_group }} &> /dev/null; then
               echo "Container app exists. Executing code to update existing app..."
               az containerapp update \
@@ -80,7 +84,7 @@ runs:
                 --registry-identity $USER_ASSIGNED_IDENTITY_ID \
                 --registry-server ${{ inputs.container_registry_hostname }} \
                 --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
-                --revision-suffix ${{ inputs.revision_suffix }} > containerapp.json
+                --revision-suffix ${{ inputs.revision_suffix }} > artifacts/containerapp.json
           else
               echo "Container app does not exist. Executing code to create new app..."
               az containerapp create \
@@ -93,12 +97,5 @@ runs:
                 --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
                 --target-port ${{ inputs.target_port }} \
                 --ingress 'external' \
-                --revision-suffix ${{ inputs.revision_suffix }} > containerapp.json
+                --revision-suffix ${{ inputs.revision_suffix }} > artifacts/containerapp.json
           fi
-
-    # Set the container app lastest revision FQDN as an output
-    - name: Set action outputs
-      id: set_action_outputs
-      shell: bash
-      run: |
-        "container_app_endpoint=$(cat containerapp.json | jq '.properties.latestRevisionFqdn' -r)" >> $GITHUB_OUTPUT
