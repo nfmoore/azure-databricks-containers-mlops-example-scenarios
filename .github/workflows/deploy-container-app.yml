@@ -96,19 +96,19 @@ jobs:
           
           # Write output to file
           echo $WORKFLOW_OUTPUT
-          echo $WORKFLOW_OUTPUT > workflow-output.json
+          echo $WORKFLOW_OUTPUT > train-artifacts/workflow-output.json
           
           ls train-artifacts
 
           # Display workflow output
-          cat workflow-output.json
+          cat train-artifacts/workflow-output.json
 
       # Upload output from workflow run
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: train-artifacts
-          path: workflow-output.json
+          path: train-artifacts
           if-no-files-found: error
 
   containerize:
@@ -193,7 +193,7 @@ jobs:
           mkdir containerize-artifacts
 
           # Copy model to artifacts directory
-          # cp ./app/model model -r
+          cp ./app/model containerize-artifacts/model -r
 
       # Build and push container image to ACR
       - name: Build and push container image
@@ -216,7 +216,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: containerize-artifacts
-          path: app/model
+          path: containerize-artifacts
 
   staging:
     name: Staging Deployment
