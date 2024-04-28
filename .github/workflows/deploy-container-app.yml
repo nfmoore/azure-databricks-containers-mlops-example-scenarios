@@ -189,15 +189,15 @@ jobs:
       #     # Copy model to artifacts directory
       #     cp ./app/model artifacts/model -r
 
-      # Build and push container image to ACR
-      - name: Build and push container image
-        uses: azure/cli@v2
-        with:
-          azcliversion: ${{ env.AZ_CLI_VERSION }}
-          inlineScript: |
-            # Get container registry name
-            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
+      # # Build and push container image to ACR
+      # - name: Build and push container image
+      #   uses: azure/cli@v2
+      #   with:
+      #     azcliversion: ${{ env.AZ_CLI_VERSION }}
+      #     inlineScript: |
+      #       # Get container registry name
+      #       CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+      #                     | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
 
       #       # Log in to ACR
       #       az acr login --name $CONTAINER_REGISTRY_NAME -t
@@ -237,6 +237,10 @@ jobs:
         with:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
           inlineScript: |
+            # Get container registry name
+            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
+
             # Get container app environment name
             echo "CONTAINER_APP_ENVIRONMENT_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
                           | jq '.[] | select(.type == "Microsoft.App/managedEnvironments") | select(.tags.environment == "staging") | .name' -r)"  >> $GITHUB_ENV
