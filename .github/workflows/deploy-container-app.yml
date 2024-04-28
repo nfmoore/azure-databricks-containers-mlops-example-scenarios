@@ -96,10 +96,8 @@ jobs:
           
           # Write output to file
           echo $WORKFLOW_OUTPUT
-          echo $WORKFLOW_OUTPUT > train-artifacts/workflow-output.json
+          echo $WORKFLOW_OUTPUT > workflow-output.json
           
-          ls train-artifacts
-
           # Display workflow output
           cat train-artifacts/workflow-output.json
 
@@ -108,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: train-artifacts
-          path: train-artifacts
+          path: databricks/train-artifacts
           if-no-files-found: error
 
   containerize:
