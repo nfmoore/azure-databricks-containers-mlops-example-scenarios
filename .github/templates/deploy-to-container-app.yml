@@ -1,0 +1,98 @@
+name: Deploy to container app
+
+description: This workflow deploys a container to an Azure Container App.
+
+inputs:
+  container_app_name:
+    description: The name of the container app resource.
+    required: true
+
+  resource_group:
+    description: The resource group where the container app is deployed.
+    required: true
+
+  container_app_environment_name:
+    description: The name of the container app environment resource.
+    required: true
+
+  user_assigned_identity_name:
+    description: The name of the user-assigned identity to use for the container app.
+    required: true
+
+  container_registry_hostname:
+    description: The hostname of the container registry server.
+    required: true
+
+  container_image:
+    description: The container image to deploy.
+    required: true
+
+  target_port:
+    description: The port to expose on the container app.
+    required: false
+    default: 5000
+
+  revision_suffix:
+    description: The suffix to append to the container app revision.
+    required: false
+    default: ${{ github.run_id }}
+
+runs:
+  using: "composite"
+
+  env:
+    CONTAINER_APP_NAME: ${{ inputs.container_app_name }}
+    RESOURCE_GROUP: ${{ inputs.resource_group }}
+    CONTAINER_APP_ENVIRONMENT_NAME: ${{ inputs.container_app_environment_name }}
+    USER_ASSIGNED_IDENTITY_NAME: ${{ inputs.user_assigned_identity_name }}
+    CONTAINER_REGISTRY_HOSTNAME: ${{ inputs.container_registry_hostname }}
+    CONTAINER_IMAGE: ${{ inputs.container_image }}
+    TARGET_PORT: ${{ inputs.target_port }}
+    REVISION_SUFFIX: ${{ inputs.revision_suffix }}
+
+  steps:
+    # Get id of the user-assigned identity
+    - name: Get identity id
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          echo "USER_ASSIGNED_IDENTITY_ID=$(az identity show --resource-group $RESOURCE_GROUP \
+            --name $USER_ASSIGNED_IDENTITY_NAME | jq '.id')" >> $GITHUB_ENV
+
+    # Deploy the container app
+    - name: Deploy container app
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          if az containerapp show --name $APP_NAME --resource-group $RESOURCE_GROUP &> /dev/null; then
+              echo "Container app exists. Executing code to update existing app..."
+              az containerapp name \
+                --name $CONTAINER_APP_NAME \
+                --resource-group $RESOURCE_GROUP \
+                --environment $CONTAINER_APP_ENVIRONMENT_NAME \
+                --user-assigned $USER_ASSIGNED_IDENTITY_ID \
+                --registry-identity $USER_ASSIGNED_IDENTITY_ID \
+                --registry-server $CONTAINER_REGISTRY_HOSTNAME \
+                --image $CONTAINER_IMAGE \
+                --revision-suffix $REVISION_SUFFIX > containerapp.json
+          else
+              echo "Container app does not exist. Executing code to create new app..."
+              az containerapp create \
+                --name $CONTAINER_APP_NAME \
+                --resource-group $RESOURCE_GROUP \
+                --environment $CONTAINER_APP_ENVIRONMENT_NAME \
+                --user-assigned $USER_ASSIGNED_IDENTITY_ID \
+                --registry-identity $USER_ASSIGNED_IDENTITY_ID \
+                --registry-server $CONTAINER_REGISTRY_HOSTNAME \
+                --image $CONTAINER_IMAGE \
+                --target-port $TARGET_PORT \
+                --ingress 'external' \
+                --revision-suffix $REVISION_SUFFIX > containerapp.json
+          fi
+
+    # Set the container app lastest revision FQDN as an output
+    - name: Set action outputs
+      run: |
+        "container_app_endpoint=$(cat containerapp.json | jq '.properties.latestRevisionFqdn' -r)" >> $GITHUB_OUTPUT

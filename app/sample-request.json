@@ -1,0 +1,27 @@
+[
+  {
+    "sex": "male",
+    "education": "university",
+    "marriage": "married",
+    "repayment_status_1": "duly_paid",
+    "repayment_status_2": "duly_paid",
+    "repayment_status_3": "duly_paid",
+    "repayment_status_4": "duly_paid",
+    "repayment_status_5": "no_delay",
+    "repayment_status_6": "no_delay",
+    "credit_limit": 18000,
+    "age": 18000,
+    "bill_amount_1": 764.95,
+    "bill_amount_2": 2221.95,
+    "bill_amount_3": 1131.85,
+    "bill_amount_4": 5074.85,
+    "bill_amount_5": 18000,
+    "bill_amount_6": 1419.95,
+    "payment_amount_1": 2236.5,
+    "payment_amount_2": 1137.55,
+    "payment_amount_3": 5084.55,
+    "payment_amount_4": 111.65,
+    "payment_amount_5": 306.9,
+    "payment_amount_6": 805.65
+  }
+]
