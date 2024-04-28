@@ -29,7 +29,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
       # Add Databricks Azure CLI extension
       - name: Add Databricks extension
         uses: azure/cli@v2
@@ -53,13 +53,13 @@ jobs:
               
             echo "DATABRICKS_TOKEN=$(az account get-access-token \
               --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
-            
+
             echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
-      
+
       # Add host to databricks.yml
       - name: Add databricks host
         run: |
-          yq -i '.workspace.host = "$DATABRICKS_HOST"' databricks/databricks.yml
+          yq -i '.workspace.host = "'"${DATABRICKS_HOST}"'"' databricks/databricks.yml
           cat databricks/databricks.yml
 
       # Install the Databricks CLI
@@ -89,7 +89,7 @@ jobs:
         run: |
           # Create artifacts directory
           mkdir artifacts
-          
+
           # Run train model workflow
           databricks bundle run train_register_model_job > artifacts/workflow-output.json
 
@@ -124,7 +124,7 @@ jobs:
   #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
   #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
   #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
   #     # Set artifact model environment variables
   #     - name: Set model variables
   #       run: |
@@ -137,15 +137,15 @@ jobs:
 
   #     # Download model artifact
   #     - name: Download model
-  #       run: | 
+  #       run: |
   #         # Get model artifact uri
   #         curl -X GET "$DATABRICKS_HOST/api/2.0/preview/mlflow/model-versions/get-download-uri" \
   #           -H "Authorization: Bearer ${DATABRICKS_TOKEN}" \
   #           -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' > download-uri.json
-          
+
   #         # Display download-uri.json
   #         cat download-uri.json
-          
+
   #         # Set model artifact uri
   #         MODEL_ARTIFACT_URI=$(jq ".artifact_uri" download-uri.json -r)
 
@@ -164,7 +164,7 @@ jobs:
   #         # Get container registry name
   #         CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
   #                       | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
-          
+
   #                       # Log in to ACR
   #         az acr login --name $CONTAINER_REGISTRY_NAME
 
