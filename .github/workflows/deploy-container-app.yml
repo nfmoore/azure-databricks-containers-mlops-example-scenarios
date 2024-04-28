@@ -91,13 +91,8 @@ jobs:
           mkdir train-artifacts
 
           # Run train model workflow
-          # WORKFLOW_OUTPUT=$(databricks bundle run train_register_model_job --output json)
-          WORKFLOW_OUTPUT='{ "task_outputs": [ { "TaskKey": "register_model", "Output": { "result": "models:/credit-default-uci-custom/3" }, "EndTime": 1714294259320 }, { "TaskKey": "train_model", "Output": {}, "EndTime": 1714294175415 } ] }'
-          
-          # Write output to file
-          echo $WORKFLOW_OUTPUT
-          echo $WORKFLOW_OUTPUT > train-artifacts/workflow-output.json
-          
+          databricks bundle run train_register_model_job --output json > train-artifacts/workflow-output.json
+
           # Display workflow output
           cat train-artifacts/workflow-output.json
 
@@ -161,8 +156,6 @@ jobs:
       # Set artifact model environment variables
       - name: Set model variables
         run: |
-          ls
-          cat workflow-output.json
           MODEL_URI=$(jq \
             '.task_outputs | map(select(.TaskKey | contains("register_model"))) | .[0].Output.result' \
             workflow-output.json -r)
@@ -265,12 +258,6 @@ jobs:
           container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
           artifacts_directory: staging-artifacts
 
-      # Set container app uri
-      - name: Set app uri
-        run: |
-          echo ${{ steps.deploy_staging.outputs }}
-          echo "CONTAINER_APP_ENDPOINT=${{ steps.deploy_staging.outputs.container_app_uri }}" >> $GITHUB_ENV
-
       # Upload model from workflow run
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -299,8 +286,6 @@ jobs:
       - name: Smoke test
         run: |
           # Set the app endpoint
-          ls
-          cat containerapp.json
           CONTAINER_APP_ENDPOINT=$(cat containerapp.json | jq '.properties.latestRevisionFqdn' -r)
 
           # Exit on error
@@ -328,10 +313,55 @@ jobs:
     name: Production Deployment
     runs-on: ubuntu-latest
     needs: [staging]
-    if: ${{ github.head_ref == 'main' }}
     environment:
       name: production
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Build and push container image to ACR
+      - name: Set resource names
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
+
+            # Get container app environment name
+            echo "CONTAINER_APP_ENVIRONMENT_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.App/managedEnvironments") | select(.tags.environment == "production") | .name' -r)"  >> $GITHUB_ENV
+
+            # Get user-assigned identity name
+            echo "USER_ASSIGNED_IDENTITY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ManagedIdentity/userAssignedIdentities") | .name' -r)"  >> $GITHUB_ENV
+
+      - name: Deploy container app
+        uses: "./.github/templates/deploy-to-container-app"
+        id: deploy_staging
+        with:
+          container_app_name: ca01${{ env.APP_NAME }}
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+          container_app_environment_name: ${{ env.CONTAINER_APP_ENVIRONMENT_NAME }}
+          user_assigned_identity_name: ${{ env.USER_ASSIGNED_IDENTITY_NAME }}
+          container_registry_hostname: ${{ env.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
+          artifacts_directory: staging-artifacts
+
+      # Upload model from workflow run
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-artifacts
+          path: staging-artifacts
+          if-no-files-found: error
