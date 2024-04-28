@@ -196,8 +196,8 @@ jobs:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
           inlineScript: |
             # Get container registry name
-            CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
+            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
 
       #       # Log in to ACR
       #       az acr login --name $CONTAINER_REGISTRY_NAME -t
