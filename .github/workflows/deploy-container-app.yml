@@ -254,7 +254,7 @@ jobs:
           container_app_environment_name: ${{ env.CONTAINER_APP_ENVIRONMENT_NAME }}
           user_assigned_identity_name: ${{ env.USER_ASSIGNED_IDENTITY_NAME }}
           container_registry_hostname: ${{ env.CONTAINER_REGISTRY_NAME }}.azurecr.io
-          container_image: ${{ env.APP_NAME }}:${{ github.run_id }}
+          container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
 
       # Set container app uri
       - name: Set app uri

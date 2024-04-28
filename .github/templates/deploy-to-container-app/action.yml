@@ -62,7 +62,7 @@ runs:
         azcliversion: ${{ env.AZ_CLI_VERSION }}
         inlineScript: |
           echo "USER_ASSIGNED_IDENTITY_ID=$(az identity show --resource-group ${{ inputs.resource_group }} \
-            --name ${{ inputs.user_assigned_identity_name }} | jq '.id')" >> $GITHUB_ENV
+            --name ${{ inputs.user_assigned_identity_name }} | jq '.id' -r)" >> $GITHUB_ENV
 
     # Deploy the container app
     - name: Deploy container app
