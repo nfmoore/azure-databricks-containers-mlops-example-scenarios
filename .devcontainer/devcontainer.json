@@ -14,7 +14,9 @@
     "ghcr.io/devcontainers-contrib/features/zsh-plugins:0": {}
   },
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
+  "forwardPorts": [
+    5000
+  ],
   // Use 'postCreateCommand' to run commands after the container is created.
   // "postCreateCommand": "",
   // Configure tool-specific properties.

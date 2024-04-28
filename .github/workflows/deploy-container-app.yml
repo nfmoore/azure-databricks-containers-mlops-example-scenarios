@@ -91,21 +91,25 @@ jobs:
           mkdir train-artifacts
 
           # Run train model workflow
-          WORKFLOW_OUTPUT=$(databricks bundle run train_register_model_job --output json)
+          # WORKFLOW_OUTPUT=$(databricks bundle run train_register_model_job --output json)
+          WORKFLOW_OUTPUT='{ "task_outputs": [ { "TaskKey": "register_model", "Output": { "result": "models:/credit-default-uci-custom/3" }, "EndTime": 1714294259320 }, { "TaskKey": "train_model", "Output": {}, "EndTime": 1714294175415 } ] }'
           
           # Write output to file
           echo $WORKFLOW_OUTPUT
-          echo $WORKFLOW_OUTPUT > train-artifacts/workflow-output.json
+          echo $WORKFLOW_OUTPUT > workflow-output.json
+          
+          ls train-artifacts
 
           # Display workflow output
-          cat train-artifacts/workflow-output.json
+          cat workflow-output.json
 
       # Upload output from workflow run
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: train-artifacts
-          path: train-artifacts
+          path: workflow-output.json
+          if-no-files-found: error
 
   containerize:
     name: Build Container
@@ -189,7 +193,7 @@ jobs:
           mkdir containerize-artifacts
 
           # Copy model to artifacts directory
-          cp ./app/model containerize-artifacts/model -r
+          # cp ./app/model model -r
 
       # Build and push container image to ACR
       - name: Build and push container image
@@ -212,7 +216,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: containerize-artifacts
-          path: containerize-artifacts
+          path: app/model
 
   staging:
     name: Staging Deployment
@@ -275,6 +279,7 @@ jobs:
         with:
           name: staging-artifacts
           path: staging-artifacts
+          if-no-files-found: error
 
   test:
     name: Smoke Test
