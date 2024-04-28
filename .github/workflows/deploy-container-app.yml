@@ -96,7 +96,7 @@ jobs:
           
           # Write output to file
           echo $WORKFLOW_OUTPUT
-          echo $WORKFLOW_OUTPUT > workflow-output.json
+          echo $WORKFLOW_OUTPUT > train-artifacts/workflow-output.json
           
           # Display workflow output
           cat train-artifacts/workflow-output.json
