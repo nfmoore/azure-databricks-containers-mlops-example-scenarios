@@ -79,10 +79,6 @@ runs:
               az containerapp update \
                 --name ${{ inputs.container_app_name }} \
                 --resource-group ${{ inputs.resource_group }} \
-                --environment ${{ inputs.container_app_environment_name }} \
-                --user-assigned $USER_ASSIGNED_IDENTITY_ID \
-                --registry-identity $USER_ASSIGNED_IDENTITY_ID \
-                --registry-server ${{ inputs.container_registry_hostname }} \
                 --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
                 --revision-suffix ${{ inputs.revision_suffix }} > ${{ inputs.artifacts_directory }}/containerapp.json
           else
