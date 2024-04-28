@@ -51,8 +51,25 @@ runs:
     REVISION_SUFFIX: ${{ inputs.revision_suffix }}
 
   steps:
+    # Authenticate to Az CLI using OIDC
+    - name: Azure CLI login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    # Add Azure Container Apps CLI extension
+    - name: Add Container Apps extension
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          # Add container apps extension
+          az extension add --name containerapp
+
     # Get id of the user-assigned identity
-    - name: Get identity id
+    - name: Get identity ID
       uses: azure/cli@v2
       with:
         azcliversion: ${{ env.AZ_CLI_VERSION }}
