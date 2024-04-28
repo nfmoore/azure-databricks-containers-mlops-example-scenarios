@@ -178,7 +178,7 @@ jobs:
           cat download-uri.json
 
           # Set model artifact uri
-          MODEL_ARTIFACT_URI=$(jq '.artifact_uri' -r download-uri.json)
+          MODEL_ARTIFACT_URI=$(jq '.artifact_uri' download-uri.json)
 
           # Download model artifacts from databricks
           mlflow artifacts download --artifact-uri $MODEL_ARTIFACT_URI --dst-path ./app/
