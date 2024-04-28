@@ -1,0 +1,16 @@
+{
+    "task_outputs": [
+        {
+            "TaskKey": "register_model",
+            "Output": {
+                "result": "models:/credit-default-uci-custom/8"
+            },
+            "EndTime": 1714125313855
+        },
+        {
+            "TaskKey": "train_model",
+            "Output": {},
+            "EndTime": 1714125222804
+        }
+    ]
+}
