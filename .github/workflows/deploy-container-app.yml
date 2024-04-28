@@ -246,7 +246,7 @@ jobs:
                           | jq '.[] | select(.type == "Microsoft.ManagedIdentity/userAssignedIdentities") | .name' -r)"  >> $GITHUB_ENV
 
       - name: Deploy container app
-        uses: "./.github/templates/deploy-to-container-app.yml"
+        uses: "./.github/templates/deploy-to-container-app"
         id: deploy_staging
         with:
           container_app_name: ca01${{ env.APP_NAME }}
