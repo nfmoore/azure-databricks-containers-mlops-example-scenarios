@@ -200,7 +200,7 @@ jobs:
                           | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
 
             # Log in to ACR
-            az acr login --name $CONTAINER_REGISTRY_NAME
+            az acr login --name $CONTAINER_REGISTRY_NAME -t
 
             # Build container image
             az acr build --image $APP_NAME:$GITHUB_RUN_ID --registry $CONTAINER_REGISTRY_NAME ./app
