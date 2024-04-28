@@ -187,7 +187,7 @@ jobs:
           mkdir artifacts
 
           # Copy model to artifacts directory
-          cp ./app/model artifacts/model
+          cp ./app/model artifacts/model -r
 
       # Build and push container image to ACR
       - name: Build and push container image
