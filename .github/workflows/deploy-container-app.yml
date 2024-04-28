@@ -25,39 +25,39 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      #   # Authenticate to Az CLI using OIDC
-      # - name: Azure CLI login
-      #   uses: azure/login@v2
-      #   with:
-      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
-      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # # Add Databricks Azure CLI extension
-      # - name: Add Databricks extension
-      #   uses: azure/cli@v2
-      #   with:
-      #     azcliversion: ${{ env.AZ_CLI_VERSION }}
-      #     inlineScript: |
-      #       # Add databricks extension
-      #       az extension add --name databricks
+      # Add Databricks Azure CLI extension
+      - name: Add Databricks extension
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Add databricks extension
+            az extension add --name databricks
 
-      #   # Set Databricks host and token environment variables and  MLFlow tracking URI
-      # - name: Set Databricks environment variables
-      #   uses: azure/cli@v2
-      #   with:
-      #     azcliversion: ${{ env.AZ_CLI_VERSION }}
-      #     inlineScript: |
-      #       DATABRICKS_WORKSPACE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-      #         | jq '.[] | select(.type == "Microsoft.Databricks/workspaces") | .name' -r)
+        # Set Databricks host and token environment variables and  MLFlow tracking URI
+      - name: Set Databricks environment variables
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            DATABRICKS_WORKSPACE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              | jq '.[] | select(.type == "Microsoft.Databricks/workspaces") | .name' -r)
 
-      #       echo "DATABRICKS_HOST=https://$(az databricks workspace show --name $DATABRICKS_WORKSPACE_NAME \
-      #         --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME | jq '.workspaceUrl' -r)" >> $GITHUB_ENV
+            echo "DATABRICKS_HOST=https://$(az databricks workspace show --name $DATABRICKS_WORKSPACE_NAME \
+              --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME | jq '.workspaceUrl' -r)" >> $GITHUB_ENV
               
-      #       echo "DATABRICKS_TOKEN=$(az account get-access-token \
-      #         --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
+            echo "DATABRICKS_TOKEN=$(az account get-access-token \
+              --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
 
-      #       echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
+            echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
 
       # # Add host to databricks.yml
       # - name: Add databricks host
@@ -186,7 +186,7 @@ jobs:
           path: artifacts
 
   staging:
-    name: Deploy to Staging
+    name: Staging Deployment
     runs-on: ubuntu-latest
     needs: [containerize]
     environment:
@@ -271,7 +271,7 @@ jobs:
           cat response.json
 
   production:
-    name: Deploy to Production
+    name: Production Deployment
     runs-on: ubuntu-latest
     needs: [staging]
     if: ${{ github.head_ref == 'main' }}
