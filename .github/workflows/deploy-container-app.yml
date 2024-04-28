@@ -59,7 +59,7 @@ jobs:
       # Add host to databricks.yml
       - name: Add databricks host
         run: |
-          yq -i '.workspace.host = "$DATABRICKS_HOST"' databricks/src/databricks.yml.yml
+          yq -i '.workspace.host = "$DATABRICKS_HOST"' databricks/src/databricks.yml
           cat databricks/src/databricks.yml
 
       # Install the Databricks CLI
