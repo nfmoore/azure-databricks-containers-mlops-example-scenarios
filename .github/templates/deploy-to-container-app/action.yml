@@ -37,10 +37,10 @@ inputs:
     required: false
     default: ${{ github.run_id }}
 
-outputs:
-  container_app_endpoint:
-    description: The fully qualified domain name (FQDN) of the container app latest revision.
-    value: ${{ steps.set_action_outputs.outputs.container_app_endpoint }}
+  artifacts_directory:
+    description: The directory where the deployment artifacts are stored.
+    required: false
+    default: "artifacts"
 
 runs:
   using: "composite"
@@ -71,10 +71,10 @@ runs:
         azcliversion: ${{ env.AZ_CLI_VERSION }}
         inlineScript: |
           # Create artifacts directory
-          mkdir artifacts
+          mkdir ${{ inputs.artifacts_directory }}
 
           # Check if container app exists
-          if az containerapp show --name $APP_NAME --resource-group ${{ inputs.resource_group }} &> /dev/null; then
+          if az containerapp show --name ${{ inputs.container_app_name }} --resource-group ${{ inputs.resource_group }} &> /dev/null; then
               echo "Container app exists. Executing code to update existing app..."
               az containerapp update \
                 --name ${{ inputs.container_app_name }} \
@@ -84,7 +84,7 @@ runs:
                 --registry-identity $USER_ASSIGNED_IDENTITY_ID \
                 --registry-server ${{ inputs.container_registry_hostname }} \
                 --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
-                --revision-suffix ${{ inputs.revision_suffix }} > artifacts/containerapp.json
+                --revision-suffix ${{ inputs.revision_suffix }} > ${{ inputs.artifacts_directory }}/containerapp.json
           else
               echo "Container app does not exist. Executing code to create new app..."
               az containerapp create \
@@ -97,5 +97,5 @@ runs:
                 --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
                 --target-port ${{ inputs.target_port }} \
                 --ingress 'external' \
-                --revision-suffix ${{ inputs.revision_suffix }} > artifacts/containerapp.json
+                --revision-suffix ${{ inputs.revision_suffix }} > ${{ inputs.artifacts_directory }}/containerapp.json
           fi

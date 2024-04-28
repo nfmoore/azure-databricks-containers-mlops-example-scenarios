@@ -59,52 +59,52 @@ jobs:
 
             echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
 
-      # # Add host to databricks.yml
-      # - name: Add databricks host
-      #   run: |
-      #     yq -i '.workspace.host = "'"${DATABRICKS_HOST}"'"' databricks/databricks.yml
-      #     cat databricks/databricks.yml
+      # Add host to databricks.yml
+      - name: Add databricks host
+        run: |
+          yq -i '.workspace.host = "'"${DATABRICKS_HOST}"'"' databricks/databricks.yml
+          cat databricks/databricks.yml
 
-      # # Install the Databricks CLI
-      # - name: Install Databricks CLI
-      #   run: |
-      #     curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      # Install the Databricks CLI
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
-      # # Configure the Databricks CLI
-      # - name: Databricks CLI config
-      #   run: |
-      #     cat > ~/.databrickscfg << EOF 
-      #     [DEFAULT] 
-      #     host = $DATABRICKS_HOST
-      #     token = $DATABRICKS_TOKEN
-      #     EOF
+      # Configure the Databricks CLI
+      - name: Databricks CLI config
+        run: |
+          cat > ~/.databrickscfg << EOF 
+          [DEFAULT] 
+          host = $DATABRICKS_HOST
+          token = $DATABRICKS_TOKEN
+          EOF
 
-      # # Deploy Databricks Bundle
-      # - name: Deploy bundle
-      #   working-directory: databricks
-      #   run: |
-      #     databricks bundle validate
-      #     databricks bundle deploy
+      # Deploy Databricks Bundle
+      - name: Deploy bundle
+        working-directory: databricks
+        run: |
+          databricks bundle validate
+          databricks bundle deploy
 
-      # # Run train model workflow
-      # - name: Run workflow
-      #   working-directory: databricks
-      #   run: |
-          # # Create artifacts directory
-          # mkdir artifacts
+      # Run train model workflow
+      - name: Run workflow
+        working-directory: databricks
+        run: |
+          # Create artifacts directory
+          mkdir train-artifacts
 
-      #     # Run train model workflow
-      #     databricks bundle run train_register_model_job > artifacts/workflow-output.json
+          # Run train model workflow
+          databricks bundle run train_register_model_job --output json > train-artifacts/workflow-output.json
 
-      #     # Display workflow output
-      #     cat artifacts/workflow-output.json
+          # Display workflow output
+          cat train-artifacts/workflow-output.json
 
       # Upload output from workflow run
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
-          path: artifacts
+          name: train-artifacts
+          path: train-artifacts
 
   containerize:
     name: Build Container
@@ -115,10 +115,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # # Download output from deployment
-      # - uses: actions/download-artifact@v4
-      #   with:
-      #     name: artifacts
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: train-artifacts
 
       # Authenticate to Az CLI using OIDC
       - name: Azure CLI login
@@ -155,62 +155,63 @@ jobs:
 
             echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
 
-      # # Set artifact model environment variables
-      # - name: Set model variables
-      #   run: |
-      #     # MODEL_URI=$(jq \
-      #     #   '.task_outputs | map(select(.TaskKey | contains("register_model"))) | .[0].Output.result' \
-      #     #   artifacts/workflow-output.json -r)
-      #     MODEL_URI=models:/credit-default-uci-custom/1
+      # Set artifact model environment variables
+      - name: Set model variables
+        run: |
+          ls
+          cat workflow-output.json
+          MODEL_URI=$(jq \
+            '.task_outputs | map(select(.TaskKey | contains("register_model"))) | .[0].Output.result' \
+            workflow-output.json -r)
 
-      #     echo "MODEL_NAME=$(echo $MODEL_URI | cut -d'/' -f2)" >> $GITHUB_ENV
-      #     echo "MODEL_VERSION=$(echo $MODEL_URI | cut -d'/' -f3)" >> $GITHUB_ENV
+          echo "MODEL_NAME=$(echo $MODEL_URI | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "MODEL_VERSION=$(echo $MODEL_URI | cut -d'/' -f3)" >> $GITHUB_ENV
 
-      # # Download model artifact
-      # - name: Download model
-      #   run: |
-      #     # Get model artifact uri
-      #     curl -X GET "$DATABRICKS_HOST/api/2.0/preview/mlflow/model-versions/get-download-uri" \
-      #       -H "Authorization: Bearer ${DATABRICKS_TOKEN}" \
-      #       -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' > download-uri.json
+      # Download model artifact
+      - name: Download model
+        run: |
+          # Get model artifact uri
+          curl -X GET "$DATABRICKS_HOST/api/2.0/preview/mlflow/model-versions/get-download-uri" \
+            -H "Authorization: Bearer ${DATABRICKS_TOKEN}" \
+            -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' > download-uri.json
 
-      #     # Display download-uri.json
-      #     cat download-uri.json
+          # Display download-uri.json
+          cat download-uri.json
 
-      #     # Set model artifact uri
-      #     MODEL_ARTIFACT_URI=$(jq '.artifact_uri' download-uri.json -r)
+          # Set model artifact uri
+          MODEL_ARTIFACT_URI=$(jq '.artifact_uri' download-uri.json -r)
 
-      #     # Download model artifacts from databricks
-      #     mlflow artifacts download --artifact-uri $MODEL_ARTIFACT_URI --dst-path ./app/
+          # Download model artifacts from databricks
+          mlflow artifacts download --artifact-uri $MODEL_ARTIFACT_URI --dst-path ./app/
 
-      #     # Create artifacts directory
-      #     mkdir artifacts
+          # Create artifacts directory
+          mkdir containerize-artifacts
 
-      #     # Copy model to artifacts directory
-      #     cp ./app/model artifacts/model -r
+          # Copy model to artifacts directory
+          cp ./app/model containerize-artifacts/model -r
 
-      # # Build and push container image to ACR
-      # - name: Build and push container image
-      #   uses: azure/cli@v2
-      #   with:
-      #     azcliversion: ${{ env.AZ_CLI_VERSION }}
-      #     inlineScript: |
-      #       # Get container registry name
-      #       CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-      #                     | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
+      # Build and push container image to ACR
+      - name: Build and push container image
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
 
-      #       # Log in to ACR
-      #       az acr login --name $CONTAINER_REGISTRY_NAME -t
+            # Log in to ACR
+            az acr login --name $CONTAINER_REGISTRY_NAME -t
 
-      #       # Build container image
-      #       az acr build --image $APP_NAME:$GITHUB_RUN_ID --registry $CONTAINER_REGISTRY_NAME ./app
+            # Build container image
+            az acr build --image $APP_NAME:$GITHUB_RUN_ID --registry $CONTAINER_REGISTRY_NAME ./app
 
       # Upload model from workflow run
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
-          path: artifacts
+          name: containerize-artifacts
+          path: containerize-artifacts
 
   staging:
     name: Staging Deployment
@@ -259,6 +260,7 @@ jobs:
           user_assigned_identity_name: ${{ env.USER_ASSIGNED_IDENTITY_NAME }}
           container_registry_hostname: ${{ env.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
+          artifacts_directory: staging-artifacts
 
       # Set container app uri
       - name: Set app uri
@@ -270,8 +272,8 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts
-          path: artifacts
+          name: staging-artifacts
+          path: staging-artifacts
 
   test:
     name: Smoke Test
@@ -287,7 +289,7 @@ jobs:
       # Download output from deployment
       - uses: actions/download-artifact@v4
         with:
-          name: artifacts
+          name: staging-artifacts
 
       # Smoke test the deployed container app
       - name: Smoke test
