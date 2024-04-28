@@ -72,14 +72,14 @@ runs:
         inlineScript: |
           if az containerapp show --name $APP_NAME --resource-group ${{ inputs.resource_group }} &> /dev/null; then
               echo "Container app exists. Executing code to update existing app..."
-              az containerapp name \
+              az containerapp update \
                 --name ${{ inputs.container_app_name }} \
                 --resource-group ${{ inputs.resource_group }} \
                 --environment ${{ inputs.container_app_environment_name }} \
                 --user-assigned $USER_ASSIGNED_IDENTITY_ID \
                 --registry-identity $USER_ASSIGNED_IDENTITY_ID \
                 --registry-server ${{ inputs.container_registry_hostname }} \
-                --image ${{ inputs.container_image }} \
+                --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
                 --revision-suffix ${{ inputs.revision_suffix }} > containerapp.json
           else
               echo "Container app does not exist. Executing code to create new app..."
@@ -90,7 +90,7 @@ runs:
                 --user-assigned $USER_ASSIGNED_IDENTITY_ID \
                 --registry-identity $USER_ASSIGNED_IDENTITY_ID \
                 --registry-server ${{ inputs.container_registry_hostname }} \
-                --image ${{ inputs.container_image }} \
+                --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
                 --target-port ${{ inputs.target_port }} \
                 --ingress 'external' \
                 --revision-suffix ${{ inputs.revision_suffix }} > containerapp.json
