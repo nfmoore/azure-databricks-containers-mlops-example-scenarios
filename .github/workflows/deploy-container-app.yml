@@ -248,7 +248,6 @@ jobs:
 
       - name: Deploy container app
         uses: "./.github/templates/deploy-to-container-app"
-        id: deploy_staging
         with:
           container_app_name: ca01${{ env.APP_NAME }}
           resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
@@ -348,20 +347,19 @@ jobs:
 
       - name: Deploy container app
         uses: "./.github/templates/deploy-to-container-app"
-        id: deploy_staging
         with:
-          container_app_name: ca01${{ env.APP_NAME }}
+          container_app_name: ca02${{ env.APP_NAME }}
           resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
           container_app_environment_name: ${{ env.CONTAINER_APP_ENVIRONMENT_NAME }}
           user_assigned_identity_name: ${{ env.USER_ASSIGNED_IDENTITY_NAME }}
           container_registry_hostname: ${{ env.CONTAINER_REGISTRY_NAME }}.azurecr.io
           container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
-          artifacts_directory: staging-artifacts
+          artifacts_directory: production-artifacts
 
       # Upload model from workflow run
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: staging-artifacts
-          path: staging-artifacts
+          name: production-artifacts
+          path: production-artifacts
           if-no-files-found: error
