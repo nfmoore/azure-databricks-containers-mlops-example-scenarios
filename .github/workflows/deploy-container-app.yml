@@ -236,7 +236,7 @@ jobs:
           echo "CONTAINER_APP_ENDPOINT=${{ steps.deploy_staging.outputs.container_app_uri }}" >> $GITHUB_ENV
 
   test:
-    name: Deploy to Staging
+    name: Smoke Test
     runs-on: ubuntu-latest
     needs: [staging]
     environment:
