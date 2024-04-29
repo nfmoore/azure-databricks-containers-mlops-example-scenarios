@@ -10,8 +10,17 @@ param resourceGroupName string = 'rg-example-scenario-azure-databricks-online-in
 @description('Databricks managed resource group name')
 param mrgDatabricksName string = 'rgm-example-scenario-azure-databricks-online-inference-containers-databricks'
 
+@description('Kubernetes managed resource group name')
+param mrgKubernetesName string = 'rgm-example-scenario-azure-databricks-online-inference-containers-kubernetes'
+
 @description('Location for resources')
 param location string = 'australiaeast'
+
+@description('Deploy Container Apps Environment')
+param deployContainerAppsEnvironment bool = true
+
+@description('Deploy Kubernetes service')
+param deployKubernetesService bool = true
 
 //********************************************************
 // Variables
@@ -28,6 +37,8 @@ var resources = {
   userAssignedIdentityName: 'id01${serviceSuffix}'
   containerAppEnvironmnetStagingName: 'cae01${serviceSuffix}'
   containerAppEnvironmnetProductionName: 'cae02${serviceSuffix}'
+  kubernetesServiceStagingName: 'aks01${serviceSuffix}'
+  kubernetesServiceProductionName: 'aks02${serviceSuffix}'
 }
 
 //********************************************************
@@ -132,7 +143,7 @@ var containerAppEnvironments = [
 ]
 
 module containerAppsEnvironment './modules/container-app-environment.bicep' = [
-  for containerAppEnvironment in containerAppEnvironments: {
+  for containerAppEnvironment in containerAppEnvironments: if (deployContainerAppsEnvironment) {
     name: '${containerAppEnvironment.name}-deployment'
     scope: resourceGroup
     params: {
@@ -143,6 +154,27 @@ module containerAppsEnvironment './modules/container-app-environment.bicep' = [
       }
       logAnalyticsWorkspaceName: logAnalyticsWorkspace.outputs.name
       logAnalyticsWorkspaceResourceGroupName: resourceGroup.name
+    }
+  }
+]
+
+var kubernetesServices = [
+  { name: resources.kubernetesServiceStagingName, environment: 'staging' }
+  { name: resources.kubernetesServiceProductionName, environment: 'production' }
+]
+
+module kubernetesService './modules/kubernetes-service.bicep' = [
+  for kubernetesService in kubernetesServices: if (deployKubernetesService) {
+    name: '${kubernetesService.name}-deployment'
+    scope: resourceGroup
+    params: {
+      name: kubernetesService.name
+      location: location
+      tags: {
+        environment: kubernetesService.environment
+      }
+      nodeResourceGroup: replace(mrgKubernetesName, 'rgm', 'rgm-${kubernetesService.environment}')
+      logAnalyticsWorkspaceId: logAnalyticsWorkspace.outputs.id
     }
   }
 ]
@@ -160,3 +192,5 @@ output databricksHostname string = databricks.outputs.hostname
 output userAssignedIdentityName string = userAssignedIdentity.outputs.name
 output containerAppEnvironmnetStagingName string = containerAppsEnvironment[0].outputs.name
 output containerAppEnvironmnetProductionName string = containerAppsEnvironment[1].outputs.name
+output kubernetesServiceStagingName string = kubernetesService[0].outputs.name
+output kubernetesServiceProductionName string = kubernetesService[1].outputs.name
