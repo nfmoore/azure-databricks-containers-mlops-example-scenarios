@@ -245,6 +245,7 @@ jobs:
       # Update Kubernetes manifest file with image
       - name: Update manifest
         run: |
+          export CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/$APP_NAME:$GITHUB_RUN_ID
           echo "CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/$APP_NAME:$GITHUB_RUN_ID" >> $GITHUB_ENV
           envsubst < kubernetes/manifest.yml > manifest.yml
           cat manifest.yml
