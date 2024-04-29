@@ -173,7 +173,9 @@ module kubernetesService './modules/kubernetes-service.bicep' = [
       tags: {
         environment: kubernetesService.environment
       }
-      nodeResourceGroup: replace(mrgKubernetesName, 'rgm', 'rgm-${kubernetesService.environment}')
+      nodeResourceGroup: kubernetesService.environment == 'staging'
+        ? '${mrgKubernetesName}-01'
+        : '${mrgKubernetesName}-02'
       logAnalyticsWorkspaceId: logAnalyticsWorkspace.outputs.id
     }
   }
