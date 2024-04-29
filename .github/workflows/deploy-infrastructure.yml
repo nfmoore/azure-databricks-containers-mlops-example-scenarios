@@ -9,6 +9,9 @@ env:
   DEPLOYMENT_LOCATION: ${{ vars.DEPLOYMENT_LOCATION }}
   DEPLOYMENT_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_RESOURCE_GROUP_NAME }}
   DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME }}
+  DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME }}
+  DEPLOY_CONTAINER_APPS: ${{ vars.DEPLOY_CONTAINER_APPS == 'true' }}
+  DEPLOY_KUBERNETES: ${{ vars.DEPLOY_KUBERNETES == 'true' }}
   GITHUB_RUN_ID: ${{ github.run_id }}
 
 permissions:
@@ -51,6 +54,9 @@ jobs:
               --location ${DEPLOYMENT_LOCATION} \
               --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
               --parameters mrgDatabricksName=${DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters mrgKubernetesName=${DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters deployContainerAppsEnvironment=${DEPLOY_CONTAINER_APPS} \
+              --parameters deployKubernetesService=${DEPLOY_KUBERNETES} \
               --parameters location=${DEPLOYMENT_LOCATION}
 
   deploy:
@@ -71,7 +77,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
         # Deploy template to subscription
-      - name: "Bicep deployment"
+      - name: Bicep deploy
         uses: azure/cli@v2
         with:
           azcliversion: ${{ env.AZ_CLI_VERSION }}
@@ -86,6 +92,9 @@ jobs:
               --location ${DEPLOYMENT_LOCATION} \
               --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
               --parameters mrgDatabricksName=${DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters mrgKubernetesName=${DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters deployContainerAppsEnvironment=${DEPLOY_CONTAINER_APPS} \
+              --parameters deployKubernetesService=${DEPLOY_KUBERNETES} \
               --parameters location=${DEPLOYMENT_LOCATION} \
               > artifacts/deployment-output.json
 
@@ -95,8 +104,8 @@ jobs:
         with:
           name: artifacts
           path: artifacts
-          
-  setup:
+
+  databricks-setup:
     name: Databricks Setup
     runs-on: ubuntu-latest
     needs: [deploy]
@@ -200,3 +209,52 @@ jobs:
             {
               "path": "dbfs:/FileStore/data/credit-card-default-uci-curated"
             }
+
+  kubernetes-setup:
+    name: Kubernetes Setup
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: ${{ vars.DEPLOY_KUBERNETES == 'true' }}
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Set Kubernetes Service and Container Registry environment variables
+      - name: Set environment variables
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            echo "KUBERNETES_SERVICE_STAGING=$(jq .properties.outputs.kubernetesServiceStagingName.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+
+            echo "KUBERNETES_SERVICE_PRODUCTION=$(jq .properties.outputs.kubernetesServiceProductionName.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+              
+            echo "CONTAINER_REGISTRY=$(jq .properties.outputs.containerRegistryName.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+
+      # Attach ACR to AKS
+      - name: Attach ACR to AKS
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            az aks update --name $KUBERNETES_SERVICE_STAGING --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              --attach-acr $CONTAINER_REGISTRY
+            az aks update --name $KUBERNETES_SERVICE_PRODUCTION --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              --attach-acr $CONTAINER_REGISTRY
