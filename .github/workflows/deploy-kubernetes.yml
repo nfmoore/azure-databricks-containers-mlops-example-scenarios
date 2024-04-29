@@ -251,7 +251,7 @@ jobs:
           cat manifest.yml
 
       # Set the target Kubernetes cluster
-      - uses: azure/aks-set-context@v3
+      - uses: azure/aks-set-context@v4
         with:
           resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
           cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
