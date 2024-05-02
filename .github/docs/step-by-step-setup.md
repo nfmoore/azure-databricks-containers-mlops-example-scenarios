@@ -39,9 +39,12 @@ Before implementing this example scenario the following is needed:
     --scope /subscriptions/<your-subscription-id>
     ```
 
+> Note:
+>
+
 ## 1.2. Create and configure a GitHub repository
 
-### Method 1: GitHub CLI
+**Method 1: GitHub CLI**:
 
 1. Log in to your GitHub account and navigate to the [azure-databricks-containers-mlops-example-scenarios](https://github.com/nfmoore/azure-databricks-containers-mlops-example-scenarios) repository and click `Use this Template` to create a new repository from this template.
 
@@ -115,13 +118,17 @@ Before implementing this example scenario the following is needed:
     --silent
     ```
 
+**Method 2: GitHub Actions UI**:
+
+...
+
 ## 1.3. Deploy Azure Resources
 
 Execute the `Deploy Azure Resources` workflow to deploy all Azure resources required for the example scenarios.
 
 To workflow can be executed via the following methods:
 
-### Method 1: GitHub CLI
+**Method 1: GitHub CLI**:
 
 1. Trigger the workflow via the GitHub CLI by executing the following command:
 
@@ -133,7 +140,7 @@ To workflow can be executed via the following methods:
     gh workflow run "Deploy Azure Resources"
     ```
 
-### Method 2: GitHub Actions UI
+**Method 2: GitHub Actions UI**:
 
 1. Manually trigger the workflow via the GitHub Actions UI by following these steps:
 
@@ -156,7 +163,7 @@ Execute the `Deploy to Container Apps` workflow to train a model, create a conta
 
 To workflow can be executed via the following methods:
 
-### Method 1: GitHub CLI
+**Method 1: GitHub CLI**:
 
 1. Trigger the workflow via the GitHub CLI by executing the following command:
 
@@ -168,7 +175,7 @@ To workflow can be executed via the following methods:
     gh workflow run "Deploy to Container Apps"
     ```
 
-### Method 2: GitHub Actions UI
+**Method 2: GitHub Actions UI**:
 
 1. Manually trigger the workflow via the GitHub Actions UI by following these steps:
 
@@ -189,7 +196,7 @@ Execute the `Deploy to Kubernetes Service` workflow to train a model, create a c
 
 To workflow can be executed via the following methods:
 
-**Method 1**:
+**Method 1: GitHub CLI**:
 
 1. Trigger the workflow via the GitHub CLI by executing the following command:
 
@@ -198,7 +205,7 @@ To workflow can be executed via the following methods:
     gh workflow run "Deploy to Kubernetes Service"
     ```
 
-**Method 2**:
+**Method 2: GitHub Actions UI**:
 
 1. Manually trigger the workflow via the GitHub Actions UI by following these steps:
 
