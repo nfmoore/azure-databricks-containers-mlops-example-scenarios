@@ -262,14 +262,6 @@ jobs:
           action: deploy
           manifests: manifest.yml
 
-      # Upload model from workflow run
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: staging-artifacts
-          path: staging-artifacts
-          if-no-files-found: error
-
   test:
     name: Smoke Test
     runs-on: ubuntu-latest
@@ -370,11 +362,3 @@ jobs:
         with:
           action: deploy
           manifests: manifest.yml
-
-      # Upload model from workflow run
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: staging-artifacts
-          path: staging-artifacts
-          if-no-files-found: error
