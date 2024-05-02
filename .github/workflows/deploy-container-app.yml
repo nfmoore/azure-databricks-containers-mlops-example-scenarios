@@ -1,4 +1,4 @@
-name: Deploy Container App
+name: Deploy to Container Apps
 
 on:
   workflow_dispatch:
