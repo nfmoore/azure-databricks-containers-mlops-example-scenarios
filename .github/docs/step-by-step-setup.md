@@ -115,9 +115,9 @@ Before implementing this example scenario the following is needed:
     --silent
     ```
 
-## 1.3. Deploy Azure resources
+## 1.3. Deploy Azure Resources
 
-Execute the `Deploy Azure resources` workflow to deploy all Azure resources required for the example scenarios.
+Execute the `Deploy Azure Resources` workflow to deploy all Azure resources required for the example scenarios.
 
 To workflow can be executed via the following methods:
 
@@ -130,7 +130,7 @@ Trigger the workflow via the GitHub CLI by executing the following command:
 gh auth login
 
 # trigger the workflow
-gh workflow run "Deploy Azure resources"
+gh workflow run "Deploy Azure Resources"
 ```
 
 ### Method 2: GitHub Actions UI
@@ -139,13 +139,13 @@ Manually trigger the workflow via the GitHub Actions UI by following these steps
 
 1. Navigate to the GitHub repository.
 2. Click on the `Actions` tab.
-3. Click on the `Deploy Azure resources` workflow.
+3. Click on the `Deploy Azure Resources` workflow.
 4. Click on the `Run workflow` button.
 5. Click on the `Run workflow` button again to confirm the action.
 
 > Note:
 >
-> - The `Deploy Azure resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
+> - The `Deploy Azure Resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 > - The service principal is added as an workspace administrator to the Databricks workspace. This same service principal will be used to authenticate with Azure Databricks to create different artefacts such as clusters, jobs, and notebooks. This is present in all GitHub Actions workflows in this repository.
 
 ## 2. Example Sceanrios
@@ -180,7 +180,7 @@ Manually trigger the workflow via the GitHub Actions UI by following these steps
 
 > Note:
 >
-> - The `Deploy Infrastructure` workflow is a prerequisite for the `Deploy to Container Apps` workflow.
+> - The `Deploy Azure Resources` workflow is a prerequisite for the `Deploy to Container Apps` workflow.
 > - The `Deploy to Container Apps` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 
 ## 2.2. Azure Kubernetes Service
@@ -210,5 +210,5 @@ Manually trigger the workflow via the GitHub Actions UI by following these steps
 
 > Note:
 >
-> - The `Deploy Infrastructure` workflow is a prerequisite for the `Deploy to Kubernetes Service` workflow.
+> - The `Deploy Azure Resources` workflow is a prerequisite for the `Deploy to Kubernetes Service` workflow.
 > - The `Deploy to Kubernetes Service` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
