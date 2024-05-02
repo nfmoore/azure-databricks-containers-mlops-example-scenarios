@@ -75,12 +75,10 @@ Before implementing this example scenario the following is needed:
     # set environment variables for GitHub repository variables
 
     export DEPLOYMENT_LOCATION=<your-location> # region to deploy resources e.g. australiaeast
-
     export BASE_NAME=example-scenarios-databricks-containers-mlops # set for convenience
     export DEPLOYMENT_RESOURCE_GROUP_NAME=rg-$BASE_NAME-01
     export DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME=rgm-databricks-$BASE_NAME-01
     export DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME=rgm-kubernetes-$BASE_NAME-01
-    
     export DEPLOY_CONTAINER_APPS=true # requred to deploy Azure Container Apps for the Container Apps scenario
     export DEPLOY_KUBERNETES=true # requred to deploy Azure Kubernetes Service for the Kubernetes Service scenario
 
@@ -119,8 +117,35 @@ Before implementing this example scenario the following is needed:
 
 ## 1.3. Deploy Azure resources
 
+Execute the `Deploy Azure resources` workflow to deploy all Azure resources required for the example scenarios.
+
+To workflow can be executed via the following methods:
+
+### Method 1: GitHub CLI
+
+Trigger the workflow via the GitHub CLI by executing the following command:
+
+```bash
+# optional - used to authenticate with your GitHub account
+gh auth login
+
+# trigger the workflow
+gh workflow run "Deploy Azure resources"
+```
+
+### Method 2: GitHub Actions UI
+
+Manually trigger the workflow via the GitHub Actions UI by following these steps:
+
+1. Navigate to the GitHub repository.
+2. Click on the `Actions` tab.
+3. Click on the `Deploy Azure resources` workflow.
+4. Click on the `Run workflow` button.
+5. Click on the `Run workflow` button again to confirm the action.
+
 > Note:
 >
+> - The `Deploy Azure resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 > - The service principal is added as an workspace administrator to the Databricks workspace. This same service principal will be used to authenticate with Azure Databricks to create different artefacts such as clusters, jobs, and notebooks. This is present in all GitHub Actions workflows in this repository.
 
 ## 2. Example Sceanrios
@@ -155,8 +180,8 @@ Manually trigger the workflow via the GitHub Actions UI by following these steps
 
 > Note:
 >
-> - The `Deploy Infrastructure` workflow is a prerequisite for the `Deploy to Kubernetes Service` workflow.
-> - The `Deploy to Kubernetes Service` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
+> - The `Deploy Infrastructure` workflow is a prerequisite for the `Deploy to Container Apps` workflow.
+> - The `Deploy to Container Apps` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 
 ## 2.2. Azure Kubernetes Service
 
