@@ -251,13 +251,15 @@ jobs:
           cat manifest.yml
 
       # Set the target Kubernetes cluster
-      - uses: azure/aks-set-context@v4
+      - name: Set target Kubernetes
+        uses: azure/aks-set-context@v4
         with:
           resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
           cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
 
       # Deploy to Kubernetes cluster
-      - uses: Azure/k8s-deploy@v5
+      - name: Deploy to Kubernetes
+        uses: azure/k8s-deploy@v5
         with:
           action: deploy
           manifests: manifest.yml
@@ -273,6 +275,14 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       # Get kubernetes service name
       - name: Set resource names
         uses: azure/cli@v2
@@ -283,7 +293,8 @@ jobs:
                           | jq '.[] | select(.type == "Microsoft.ContainerService/managedClusters") | select(.tags.environment == "staging") | .name' -r)"  >> $GITHUB_ENV
 
       # Set the target Kubernetes cluster
-      - uses: azure/aks-set-context@v4
+      - name: Set target Kubernetes
+        uses: azure/aks-set-context@v4
         with:
           resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
           cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
@@ -331,7 +342,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Authenticate to Az CLI using OIDC
+        # Authenticate to Az CLI using OIDC
       - name: Azure CLI login
         uses: azure/login@v2
         with:
@@ -362,13 +373,15 @@ jobs:
           cat manifest.yml
 
       # Set the target Kubernetes cluster
-      - uses: azure/aks-set-context@v4
+      - name: Set target Kubernetes
+        uses: azure/aks-set-context@v4
         with:
           resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
           cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
 
       # Deploy to Kubernetes cluster
-      - uses: Azure/k8s-deploy@v5
+      - name: Deploy to Kubernetes
+        uses: azure/k8s-deploy@v5
         with:
           action: deploy
           manifests: manifest.yml
