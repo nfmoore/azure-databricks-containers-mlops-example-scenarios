@@ -123,25 +123,25 @@ To workflow can be executed via the following methods:
 
 ### Method 1: GitHub CLI
 
-Trigger the workflow via the GitHub CLI by executing the following command:
+1. Trigger the workflow via the GitHub CLI by executing the following command:
 
-```bash
-# optional - used to authenticate with your GitHub account
-gh auth login
+    ```bash
+    # optional - used to authenticate with your GitHub account
+    gh auth login
 
-# trigger the workflow
-gh workflow run "Deploy Azure Resources"
-```
+    # trigger the workflow
+    gh workflow run "Deploy Azure Resources"
+    ```
 
 ### Method 2: GitHub Actions UI
 
-Manually trigger the workflow via the GitHub Actions UI by following these steps:
+1. Manually trigger the workflow via the GitHub Actions UI by following these steps:
 
-1. Navigate to the GitHub repository.
-2. Click on the `Actions` tab.
-3. Click on the `Deploy Azure Resources` workflow.
-4. Click on the `Run workflow` button.
-5. Click on the `Run workflow` button again to confirm the action.
+   1. Navigate to the GitHub repository.
+   2. Click on the `Actions` tab.
+   3. Click on the `Deploy Azure Resources` workflow.
+   4. Click on the `Run workflow` button.
+   5. Click on the `Run workflow` button again to confirm the action.
 
 > Note:
 >
@@ -158,25 +158,25 @@ To workflow can be executed via the following methods:
 
 ### Method 1: GitHub CLI
 
-Trigger the workflow via the GitHub CLI by executing the following command:
+1. Trigger the workflow via the GitHub CLI by executing the following command:
 
-```bash
-# optional - used to authenticate with your GitHub account
-gh auth login
+    ```bash
+    # optional - used to authenticate with your GitHub account
+    gh auth login
 
-# trigger the workflow
-gh workflow run "Deploy to Container Apps"
-```
+    # trigger the workflow
+    gh workflow run "Deploy to Container Apps"
+    ```
 
 ### Method 2: GitHub Actions UI
 
-Manually trigger the workflow via the GitHub Actions UI by following these steps:
+1. Manually trigger the workflow via the GitHub Actions UI by following these steps:
 
-1. Navigate to the GitHub repository.
-2. Click on the `Actions` tab.
-3. Click on the `Deploy to Container Apps` workflow.
-4. Click on the `Run workflow` button.
-5. Click on the `Run workflow` button again to confirm the action.
+   1. Navigate to the GitHub repository.
+   2. Click on the `Actions` tab.
+   3. Click on the `Deploy to Container Apps` workflow.
+   4. Click on the `Run workflow` button.
+   5. Click on the `Run workflow` button again to confirm the action.
 
 > Note:
 >
@@ -191,22 +191,22 @@ To workflow can be executed via the following methods:
 
 **Method 1**:
 
-Trigger the workflow via the GitHub CLI by executing the following command:
+1. Trigger the workflow via the GitHub CLI by executing the following command:
 
-```bash
-gh auth # (optional - used to authenticate with your GitHub account)
-gh workflow run "Deploy to Kubernetes Service"
-```
+    ```bash
+    gh auth # (optional - used to authenticate with your GitHub account)
+    gh workflow run "Deploy to Kubernetes Service"
+    ```
 
 **Method 2**:
 
-Manually trigger the workflow via the GitHub Actions UI by following these steps:
+1. Manually trigger the workflow via the GitHub Actions UI by following these steps:
 
-1. Navigate to the GitHub repository.
-2. Click on the `Actions` tab.
-3. Click on the `Deploy to Kubernetes Service` workflow.
-4. Click on the `Run workflow` button.
-5. Click on the `Run workflow` button again to confirm the action.
+   1. Navigate to the GitHub repository.
+   2. Click on the `Actions` tab.
+   3. Click on the `Deploy to Kubernetes Service` workflow.
+   4. Click on the `Run workflow` button.
+   5. Click on the `Run workflow` button again to confirm the action.
 
 > Note:
 >
