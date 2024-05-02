@@ -228,7 +228,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Build and push container image to ACR
+      # Set container registry and kubernetes service resource names
       - name: Set resource names
         uses: azure/cli@v2
         with:
@@ -273,10 +273,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Download output from deployment
-      - uses: actions/download-artifact@v4
+      # Get kubernetes service name
+      - name: Set resource names
+        uses: azure/cli@v2
         with:
-          name: staging-artifacts
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            echo "KUBERNETES_SERVICE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerService/managedClusters") | select(.tags.environment == "staging") | .name' -r)"  >> $GITHUB_ENV
+
+      # Set the target Kubernetes cluster
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+          cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
 
       # Smoke test the deployed container app
       - name: Smoke test
