@@ -2,6 +2,11 @@
 
 The purpose of this section is to describe the steps required to setup each example scenario.
 
+> [!TIP]
+>
+> - Its recommended to complete the setup using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds) or local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
+> - The example scenarios are designed to be executed in sequence.
+
 ## Prerequisites
 
 Before implementing this example scenario the following is needed:
@@ -83,7 +88,7 @@ After executing these steps you will have a federated identity credential on a s
 
 ![Federated Credential in Microsoft Entra](./images/setup01.png)
 
-> Note:
+> [!NOTE]
 >
 > - Ensure note of the Client ID, Tenant ID and Subscription ID as they will be used in the next steps.
 > - More information about  setting up an Azure Login with OpenID Connect and use it in a GitHub Actions workflow is available [here](https://learn.microsoft.com/azure/developer/github/connect-from-azure?tabs=azure-cli).
@@ -196,7 +201,7 @@ To workflow can be executed via the following methods:
    4. Click on the `Run workflow` button.
    5. Click on the `Run workflow` button again to confirm the action.
 
-> Note:
+> [!NOTE]
 >
 > - The `Deploy Azure Resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 > - The service principal is added as an workspace administrator to the Databricks workspace. This same service principal will be used to authenticate with Azure Databricks to create different artefacts such as clusters, jobs, and notebooks. This is present in all GitHub Actions workflows in this repository.
@@ -231,9 +236,12 @@ To workflow can be executed via the following methods:
    4. Click on the `Run workflow` button.
    5. Click on the `Run workflow` button again to confirm the action.
 
-> Note:
+> [!IMPORTANT]
 >
 > - The `Deploy Azure Resources` workflow is a prerequisite for the `Deploy to Container Apps` workflow.
+
+> [!NOTE]
+>
 > - The `Deploy to Container Apps` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 
 ## 2.2. Azure Kubernetes Service
@@ -261,7 +269,10 @@ To workflow can be executed via the following methods:
    4. Click on the `Run workflow` button.
    5. Click on the `Run workflow` button again to confirm the action.
 
-> Note:
+> [!IMPORTANT]
 >
 > - The `Deploy Azure Resources` workflow is a prerequisite for the `Deploy to Kubernetes Service` workflow.
+
+> [!NOTE]
+>
 > - The `Deploy to Kubernetes Service` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
