@@ -39,8 +39,54 @@ Before implementing this example scenario the following is needed:
     --scope /subscriptions/<your-subscription-id>
     ```
 
+4. Create federated credentials for your Microsoft Entra application by executing the following command:
+
+    ```bash
+    export REPOSITORY_NAME=example-scenarios-databricks-containers-mlops # replace with your repository name
+    export OWNER=<your-username># replace with your GitHub username
+
+    # create federated credential for workflows targeting the Production environment
+    az ad app federated-credential create \
+    --id <your-application-id> \
+    --parameters '{
+        "name": "ProductionEnvironmentCredential",
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "repo:'${OWNER}'/'${REPOSITORY_NAME}':environment:Production",
+        "description": "Federated credential for workflows in the Production environment",
+        "audiences": [ "api://AzureADTokenExchange" ]
+    }'
+
+    # create federated credential for jobs tied to the Staging environment
+    az ad app federated-credential create \
+    --id <your-application-id> \
+    --parameters '{
+        "name": "StagingEnvironmentCredential",
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "repo:'${OWNER}'/'${REPOSITORY_NAME}':environment:Staging",
+        "description": "Federated credential for jobs tied to the Staging environment",
+        "audiences": [ "api://AzureADTokenExchange" ]
+    }'
+
+    # create federated credential for jobs tied to the main branch
+    az ad app federated-credential create \
+    --id <your-application-id> \
+    --parameters '{
+        "name": "MainBranchCredential",
+        "issuer": "https://token.actions.githubusercontent.com",
+        "subject": "repo:'${OWNER}'/'${REPOSITORY_NAME}':ref:refs/heads/main",
+        "description": "Federated credential for jobs tied to the main branch",
+        "audiences": [ "api://AzureADTokenExchange" ]
+    }'
+    ```
+
+After executing these steps you will have a federated identity credential on a service principal that can be used to authenticate with Azure services. This can be viewed in Microsoft Entra by navigating to the `App registrations` blade and selecting the application created in step 1.
+
+![Federated Credential in Microsoft Entra](./images/setup01.png)
+
 > Note:
 >
+> - Ensure note of the Client ID, Tenant ID and Subscription ID as they will be used in the next steps.
+> - More information about  setting up an Azure Login with OpenID Connect and use it in a GitHub Actions workflow is available [here](https://learn.microsoft.com/azure/developer/github/connect-from-azure?tabs=azure-cli).
 
 ## 1.2. Create and configure a GitHub repository
 
