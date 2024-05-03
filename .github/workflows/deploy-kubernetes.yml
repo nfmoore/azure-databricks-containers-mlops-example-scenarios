@@ -214,7 +214,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [containerize]
     environment:
-      name: staging
+      name: Staging
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
@@ -269,7 +269,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [staging]
     environment:
-      name: staging
+      name: Staging
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
@@ -336,7 +336,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [staging]
     environment:
-      name: production
+      name: Production
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout repo
