@@ -1,4 +1,4 @@
-name: Deploy to container app
+name: Deploy to Container App
 
 description: This workflow deploys a container to an Azure Container App.
 

@@ -30,58 +30,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Add Databricks Azure CLI extension
-      - name: Add Databricks extension
-        uses: azure/cli@v2
-        with:
-          azcliversion: ${{ env.AZ_CLI_VERSION }}
-          inlineScript: |
-            # Add databricks extension
-            az extension add --name databricks
-
-      # Set Databricks host and token environment variables and  MLFlow tracking URI
-      - name: Set Databricks environment variables
-        uses: azure/cli@v2
-        with:
-          azcliversion: ${{ env.AZ_CLI_VERSION }}
-          inlineScript: |
-            DATABRICKS_WORKSPACE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-              | jq '.[] | select(.type == "Microsoft.Databricks/workspaces") | .name' -r)
-
-            echo "DATABRICKS_HOST=https://$(az databricks workspace show --name $DATABRICKS_WORKSPACE_NAME \
-              --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME | jq '.workspaceUrl' -r)" >> $GITHUB_ENV
-
-            echo "DATABRICKS_TOKEN=$(az account get-access-token \
-              --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
-
-            echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
-
-      # Add host to databricks.yml
-      - name: Add databricks host
-        run: |
-          yq -i '.workspace.host = "'"${DATABRICKS_HOST}"'"' databricks/databricks.yml
-          cat databricks/databricks.yml
-
-      # Install the Databricks CLI
-      - name: Install Databricks CLI
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-
-      # Configure the Databricks CLI
-      - name: Databricks CLI config
-        run: |
-          cat > ~/.databrickscfg << EOF
-          [DEFAULT]
-          host = $DATABRICKS_HOST
-          token = $DATABRICKS_TOKEN
-          EOF
-
       # Deploy Databricks Bundle
-      - name: Deploy bundle
-        working-directory: databricks
-        run: |
-          databricks bundle validate
-          databricks bundle deploy
+      - name: Deploy Databricks Bundle
+        uses: "./.github/templates/deploy-databricks-bundle"
+        with:
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
 
       # Run train model workflow
       - name: Run workflow
@@ -228,41 +181,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Set container registry and kubernetes service resource names
-      - name: Set resource names
-        uses: azure/cli@v2
-        with:
-          azcliversion: ${{ env.AZ_CLI_VERSION }}
-          inlineScript: |
-            # Get container registry name
-            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
-
-            # Get kubernetes service name
-            echo "KUBERNETES_SERVICE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-                          | jq '.[] | select(.type == "Microsoft.ContainerService/managedClusters") | select(.tags.environment == "staging") | .name' -r)"  >> $GITHUB_ENV
-
-      # Update Kubernetes manifest file with image
-      - name: Update manifest
-        run: |
-          export CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/$APP_NAME:$GITHUB_RUN_ID
-          echo "CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/$APP_NAME:$GITHUB_RUN_ID" >> $GITHUB_ENV
-          envsubst < kubernetes/manifest.yml > manifest.yml
-          cat manifest.yml
-
-      # Set the target Kubernetes cluster
-      - name: Set target Kubernetes
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
-          cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
-
       # Deploy to Kubernetes cluster
       - name: Deploy to Kubernetes
-        uses: azure/k8s-deploy@v5
+        uses: "./.github/templates/deploy-to-kubernetes"
         with:
-          action: deploy
-          manifests: manifest.yml
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+          environment_tag: staging
+          container_image: ${{ env.APP_NAME }}:$GITHUB_RUN_ID
 
   test:
     name: Smoke Test
@@ -350,38 +275,10 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Build and push container image to ACR
-      - name: Set resource names
-        uses: azure/cli@v2
-        with:
-          azcliversion: ${{ env.AZ_CLI_VERSION }}
-          inlineScript: |
-            # Get container registry name
-            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
-
-            # Get kubernetes service name
-            echo "KUBERNETES_SERVICE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
-                          | jq '.[] | select(.type == "Microsoft.ContainerService/managedClusters") | select(.tags.environment == "production") | .name' -r)"  >> $GITHUB_ENV
-
-      # Update Kubernetes manifest file with image
-      - name: Update manifest
-        run: |
-          export CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/$APP_NAME:$GITHUB_RUN_ID
-          echo "CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/$APP_NAME:$GITHUB_RUN_ID" >> $GITHUB_ENV
-          envsubst < kubernetes/manifest.yml > manifest.yml
-          cat manifest.yml
-
-      # Set the target Kubernetes cluster
-      - name: Set target Kubernetes
-        uses: azure/aks-set-context@v4
-        with:
-          resource-group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
-          cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
-
       # Deploy to Kubernetes cluster
       - name: Deploy to Kubernetes
-        uses: azure/k8s-deploy@v5
+        uses: "./.github/templates/deploy-to-kubernetes"
         with:
-          action: deploy
-          manifests: manifest.yml
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+          environment_tag: production
+          container_image: ${{ env.APP_NAME }}:$GITHUB_RUN_ID

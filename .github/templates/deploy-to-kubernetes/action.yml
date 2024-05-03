@@ -1,0 +1,62 @@
+name: Deploy to Kubernetes Service
+
+description: This workflow deploys a container to an Azure Kubernetes Service.
+
+inputs:
+  resource_group:
+    description: The resource group where the container app is deployed.
+    required: true
+
+  environment_tag:
+    description: The tag to identify the environment.
+    required: true
+
+  container_image:
+    description: The container image to deploy.
+    required: true
+
+  kubernetes_manifest_file:
+    description: The path to the Kubernetes manifest file.
+    required: false
+    default: kubernetes/manifest.yml
+
+runs:
+  using: "composite"
+
+  steps:
+      # Set environment variables
+      - name: Set resource names
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group ${{ inputs.resource_group }} \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
+
+            # Get kubernetes service name
+            echo "KUBERNETES_SERVICE_NAME=$(az resource list --resource-group ${{ inputs.resource_group }} \
+                          | jq '.[] | select(.type == "Microsoft.ContainerService/managedClusters") | select(.tags.environment == "${{ inputs.environment_tag }}") | .name' -r)"  >> $GITHUB_ENV
+
+      # Update Kubernetes manifest file with image
+      - name: Update manifest
+        shell: bash
+        run: |
+          export CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/${{ inputs.container_image }}
+          echo "CONTAINER_IMAGE=$CONTAINER_REGISTRY_NAME.azurecr.io/${{ inputs.container_image }}" >> $GITHUB_ENV
+          envsubst < ${{ inputs.kubernetes_manifest_file }} > manifest.yml
+          cat manifest.yml
+
+      # Set the target Kubernetes cluster
+      - name: Set target Kubernetes
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ inputs.resource_group }}
+          cluster-name: ${{ env.KUBERNETES_SERVICE_NAME }}
+
+      # Deploy to Kubernetes cluster
+      - name: Deploy to Kubernetes
+        uses: azure/k8s-deploy@v5
+        with:
+          action: deploy
+          manifests: manifest.yml
