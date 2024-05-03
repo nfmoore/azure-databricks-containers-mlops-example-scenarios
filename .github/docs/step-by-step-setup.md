@@ -2,15 +2,6 @@
 
 The purpose of this section is to describe the steps required to setup each example scenario.
 
-> [!TIP]
->
-> - Its recommended to complete the setup using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds) or local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
-> - The example scenarios are designed to be executed in sequence.
-
-> [!WARNING]
->
-> - If you use a GitHub Codespace you may encounter HTTP 403 errors when executing GitHub CLI commands. If you encounter these issues try executing `export GITHUB_TOKEN=` to overwrite the GITHUB_TOKEN environment variable then execute `gh auth login`. Codespaces also uses GITHUB_TOKEN, but the token used is less permissive.
-
 ## Prerequisites
 
 Before implementing this example scenario the following is needed:
@@ -20,11 +11,25 @@ Before implementing this example scenario the following is needed:
 
 ## 1. Common Setup
 
-## 1.1. Create and configure a GitHub repository
+> [!TIP]
+>
+> - Its recommended to complete the setup using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds) or local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
+> - The example scenarios are designed to be executed in sequence.
+
+> [!WARNING]
+>
+> - As with all Azure Deployments, this will incur associated costs. Remember to teardown all related resources after use to avoid unnecessary costs.
+> - If you use a GitHub Codespace you may encounter HTTP 403 errors when executing GitHub CLI commands. If you encounter these issues try executing `export GITHUB_TOKEN=` to overwrite the GITHUB_TOKEN environment variable then execute `gh auth login`. Codespaces also uses GITHUB_TOKEN, but the token used is less permissive.
+
+## 1.1. Create a GitHub repository
 
 1. Log in to your GitHub account and navigate to the [azure-databricks-containers-mlops-example-scenarios](https://github.com/nfmoore/azure-databricks-containers-mlops-example-scenarios) repository and click `Use this template` to create a new repository from this template.
 
     Rename the template and leave it public. Ensure you click `Include all branches` to copy all branches.
+
+> [!NOTE]
+>
+> - You can learn more about creating a repository from a template [here](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
 
 ## 1.2. Configure a federated identity credential on a service principal
 
@@ -57,12 +62,14 @@ Before implementing this example scenario the following is needed:
 4. Create federated credentials for your Microsoft Entra application by executing the following command:
 
     ```bash
+    # set environment variables for the federated credentials
+    export APPLICATION_ID=<your-application-id> # replace with your application id
     export REPOSITORY_NAME=example-scenarios-databricks-containers-mlops # replace with your repository name
     export OWNER=<your-username># replace with your GitHub username
 
     # create federated credential for workflows targeting the Production environment
     az ad app federated-credential create \
-    --id <your-application-id> \
+    --id $APPLICATION_ID \
     --parameters '{
         "name": "ProductionEnvironmentCredential",
         "issuer": "https://token.actions.githubusercontent.com",
@@ -73,7 +80,7 @@ Before implementing this example scenario the following is needed:
 
     # create federated credential for jobs tied to the Staging environment
     az ad app federated-credential create \
-    --id <your-application-id> \
+    --id $APPLICATION_ID \
     --parameters '{
         "name": "StagingEnvironmentCredential",
         "issuer": "https://token.actions.githubusercontent.com",
@@ -84,7 +91,7 @@ Before implementing this example scenario the following is needed:
 
     # create federated credential for jobs tied to the main branch
     az ad app federated-credential create \
-    --id <your-application-id> \
+    --id $APPLICATION_ID \
     --parameters '{
         "name": "MainBranchCredential",
         "issuer": "https://token.actions.githubusercontent.com",
@@ -131,7 +138,6 @@ After executing these steps you will have a federated identity credential on a s
     gh auth login
 
     # set environment variables for GitHub repository variables
-
     export DEPLOYMENT_LOCATION=<your-azure-region> # region to deploy resources e.g. australiaeast
     export BASE_NAME=example-scenarios-databricks-containers-mlops # set for convenience
     export DEPLOYMENT_RESOURCE_GROUP_NAME=rg-$BASE_NAME-01
