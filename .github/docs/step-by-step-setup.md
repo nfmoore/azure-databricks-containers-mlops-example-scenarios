@@ -7,6 +7,10 @@ The purpose of this section is to describe the steps required to setup each exam
 > - Its recommended to complete the setup using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds) or local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
 > - The example scenarios are designed to be executed in sequence.
 
+> [!WARNING]
+>
+> - If you use a GitHub Codespace you may encounter HTTP 403 errors when executing GitHub CLI commands. If you encounter these issues try executing `export GITHUB_TOKEN=` to overwrite the GITHUB_TOKEN environment variable then execute `gh auth login`. Codespaces also uses GITHUB_TOKEN, but the token used is less permissive.
+
 ## Prerequisites
 
 Before implementing this example scenario the following is needed:
@@ -16,7 +20,13 @@ Before implementing this example scenario the following is needed:
 
 ## 1. Common Setup
 
-## 1.1. Configure a federated identity credential on a service principal
+## 1.1. Create and configure a GitHub repository
+
+1. Log in to your GitHub account and navigate to the [azure-databricks-containers-mlops-example-scenarios](https://github.com/nfmoore/azure-databricks-containers-mlops-example-scenarios) repository and click `Use this template` to create a new repository from this template.
+
+    Rename the template and leave it public. Ensure you click `Include all branches` to copy all branches.
+
+## 1.2. Configure a federated identity credential on a service principal
 
 1. Create a Microsoft Entra application by executing the following command:
 
@@ -86,24 +96,18 @@ Before implementing this example scenario the following is needed:
 
 After executing these steps you will have a federated identity credential on a service principal that can be used to authenticate with Azure services. This can be viewed in Microsoft Entra by navigating to the `App registrations` blade and selecting the application created in step 1.
 
-![Federated Credential in Microsoft Entra](./images/setup01.png)
+![Federated Credential in Microsoft Entra](./images/setup-01.png)
 
 > [!NOTE]
 >
 > - Ensure note of the Client ID, Tenant ID and Subscription ID as they will be used in the next steps.
 > - More information about  setting up an Azure Login with OpenID Connect and use it in a GitHub Actions workflow is available [here](https://learn.microsoft.com/azure/developer/github/connect-from-azure?tabs=azure-cli).
 
-## 1.2. Create and configure a GitHub repository
+## 1.3. Configure GitHub repository secrets, variables, and environments
 
 **Method 1: GitHub CLI**:
 
-1. Log in to your GitHub account and navigate to the [azure-databricks-containers-mlops-example-scenarios](https://github.com/nfmoore/azure-databricks-containers-mlops-example-scenarios) repository and click `Use this Template` to create a new repository from this template.
-
-    Rename the template and leave it public. Ensure you click `Include all branches` to copy all branches from the repository and not just `main`.
-
-    Use [these](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) instructions for more details about creating a repository from a template.
-
-2. Create the following GitHub Actions repository secrets by executing the following command:
+1. Create the following GitHub Actions repository secrets by executing the following command:
 
     ```bash
     # optional - used to authenticate with your GitHub account
@@ -120,7 +124,7 @@ After executing these steps you will have a federated identity credential on a s
     gh secret set AZURE_SUBSCRIPTION_ID --body "$AZURE_SUBSCRIPTION_ID"
     ```
 
-3. Create the following GitHub Actions repository variables by executing the following command:
+2. Create the following GitHub Actions repository variables by executing the following command:
 
     ```bash
     # optional - used to authenticate with your GitHub account
@@ -128,7 +132,7 @@ After executing these steps you will have a federated identity credential on a s
 
     # set environment variables for GitHub repository variables
 
-    export DEPLOYMENT_LOCATION=<your-location> # region to deploy resources e.g. australiaeast
+    export DEPLOYMENT_LOCATION=<your-azure-region> # region to deploy resources e.g. australiaeast
     export BASE_NAME=example-scenarios-databricks-containers-mlops # set for convenience
     export DEPLOYMENT_RESOURCE_GROUP_NAME=rg-$BASE_NAME-01
     export DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME=rgm-databricks-$BASE_NAME-01
@@ -145,35 +149,77 @@ After executing these steps you will have a federated identity credential on a s
     gh variable set DEPLOY_CONTAINER_APPS  --body true
     ```
 
-4. Create the following GitHub Actions environments by executing the following command:
+3. Create the following GitHub Actions environments by executing the following command:
 
     ```bash
     # optional - used to authenticate with your GitHub account
     gh auth login
 
     # set environment variables for GitHub repository environments
-    OWNER=<your-username>
-    REPO=<your-repository-name>
+    OWNER=$(gh api user | jq -r '.login')
+    OWNER_ID=$(gh api user | jq -r '.id')
+    REPOSITORY_NAME=$(gh repo view --json name | jq '.name' -r)
 
     # create the staging environment
-    gh api -X PUT /repos/$OWNER/$REPO/environments/Staging \ 
-    -H "Accept: application/vnd.github+json" \ 
+    gh api \
+    --method PUT \
+    -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    --silent
+    /repos/$OWNER/$REPOSITORY_NAME/environments/Staging
 
     # create the production environment with a reviewer and a wait timer
-    gh api -X PUT /repos/$OWNER/$REPO/environments/Production \ 
-    -H "Accept: application/vnd.github+json" \ 
+    gh api \
+    --method PUT \
+    -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    -F "wait_timer=30" -F "prevent_self_review=false" -f "reviewers[][type]=User" -F "reviewers[][id]=$ID"
-    --silent
+    /repos/$OWNER/$REPOSITORY_NAME/environments/Production \
+    -F "prevent_self_review=false" -f "reviewers[][type]=User" -F "reviewers[][id]=$OWNER_ID"
     ```
 
 **Method 2: GitHub Actions UI**:
 
-...
+1. Create the following GitHub Actions repository secrets by:
+   1. Navigate to the GitHub repository.
+   2. Click on the `Settings` tab.
+   3. Click on the `Secrets and variables` link and selecting `Actions`.
+   4. Clicking on the `New repository secret` button.
+   5. Add the following secrets:
+        - `AZURE_CLIENT_ID` with the value of the `Client ID` from the federated identity credential.
+        - `AZURE_TENANT_ID` with the value of the `Tenant ID` from the federated identity credential.
+        - `AZURE_SUBSCRIPTION_ID` with the value of the `Subscription ID` from the federated identity credential.
 
-## 1.3. Deploy Azure Resources
+2. Create the following GitHub Actions repository variables by:
+    1. Navigate to the GitHub repository.
+    2. Click on the `Settings` tab.
+    3. Click on the `Secrets and variables` link and selecting `Actions`.
+    4. Clicking on `Variables` in the tab.
+    5. Clicking on the `New repository variable` button.
+    6. Add the following variables:
+        - `DEPLOYMENT_LOCATION` with the value of the Azure region to deploy resources.
+        - `DEPLOYMENT_RESOURCE_GROUP_NAME` with the value of the resource group name for the deployment.
+        - `DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME` with the value of the resource group name for the Databricks managed resources.
+        - `DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME` with the value of the resource group name for the Kubernetes managed resources.
+        - `DEPLOY_CONTAINER_APPS` with the value of `true` to deploy Azure Container Apps for the Container Apps scenario.
+        - `DEPLOY_KUBERNETES` with the value of `true` to deploy Azure Kubernetes Service for the Kubernetes Service scenario.
+
+3. Create the following GitHub Actions environments by:
+    1. Navigate to the GitHub repository.
+    2. Click on the `Settings` tab.
+    3. Click on the `Environments` link.
+    4. Click on the `New environment` button.
+    5. Add the following environments:
+        - `Staging` with no reviewers.
+        - `Production` with a reviewer and a wait timer.
+
+After executing these steps you will have configured the GitHub repository with the required secrets, variables, and environments.
+
+![GitHub Repository Secrets](./images/setup-02.png)
+
+![GitHub Repository Variables](./images/setup-03.png)
+
+![GitHub Repository Environments](./images/setup-04.png)
+
+## 1.4. Deploy Azure Resources
 
 Execute the `Deploy Azure Resources` workflow to deploy all Azure resources required for the example scenarios.
 
