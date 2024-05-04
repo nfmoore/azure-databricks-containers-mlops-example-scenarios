@@ -15,6 +15,7 @@ The purpose of this section is to describe the steps required to setup each exam
 > [!NOTE]
 >
 > - Common setup section should take 25 minutes to complete.
+> - Example scenarios should take 35 minutes to complete.
 
 ## Prerequisites
 
