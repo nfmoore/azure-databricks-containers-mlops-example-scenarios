@@ -33,6 +33,8 @@ Before implementing this example scenario the following is needed:
 
 ## 1.2. Configure a federated identity credential on a service principal
 
+> [!NOTE] This section should take 5 minutes to complete.
+
 1. Create a Microsoft Entra application by executing the following command:
 
     ```bash
@@ -49,11 +51,11 @@ Before implementing this example scenario the following is needed:
 
     Take note of the `id` value (the Object ID or Principal ID) returned by the command as it will be used in the next step.
 
-3. Assign the service principal as a `Contributor` of an Azure subscription by executing the following command:
+3. Assign the service principal as a `Owner` of an Azure subscription by executing the following command:
 
     ```bash
     az role assignment create \
-    --role "Contributor" \
+    --role "Owner" \
     --assignee-object-id <your-object-id> \
     --assignee-principal-type ServicePrincipal \
     --scope /subscriptions/<your-subscription-id>
@@ -111,6 +113,8 @@ After executing these steps you will have a federated identity credential on a s
 > - More information about  setting up an Azure Login with OpenID Connect and use it in a GitHub Actions workflow is available [here](https://learn.microsoft.com/azure/developer/github/connect-from-azure?tabs=azure-cli).
 
 ## 1.3. Configure GitHub repository secrets, variables, and environments
+
+> [!NOTE] This section should take 5 minutes to complete.
 
 **Method 1: GitHub CLI**:
 
@@ -225,7 +229,15 @@ After executing these steps you will have configured the GitHub repository with 
 
 ![GitHub Repository Environments](./images/setup-04.png)
 
+> [!NOTE]
+>
+> - More information about using secrets in GitHub Actions is available [here](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
+> - More information about using variables in GitHub Actions is available [here](https://docs.github.com/en/actions/learn-github-actions/variables).
+> - More information about using environments for deployments in GitHub Actions is available [here](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment).
+
 ## 1.4. Deploy Azure Resources
+
+> [!NOTE] This section should take 15 minutes to complete.
 
 Execute the `Deploy Azure Resources` workflow to deploy all Azure resources required for the example scenarios.
 
@@ -257,6 +269,13 @@ To workflow can be executed via the following methods:
 >
 > - The `Deploy Azure Resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
 > - The service principal is added as an workspace administrator to the Databricks workspace. This same service principal will be used to authenticate with Azure Databricks to create different artefacts such as clusters, jobs, and notebooks. This is present in all GitHub Actions workflows in this repository.
+> - More information about CI/CD with GitHub Actions is available [here](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
+
+After executing these steps you will have deployed all Azure resources required for the example scenarios.
+
+![GitHub Actions Workflow](./images/setup-05.png)
+
+![Azure Resources](./images/setup-06.png)
 
 ## 2. Example Sceanrios
 
@@ -295,6 +314,7 @@ To workflow can be executed via the following methods:
 > [!NOTE]
 >
 > - The `Deploy to Container Apps` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
+> - More information about CI/CD with GitHub Actions is available [here](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
 
 ## 2.2. Azure Kubernetes Service
 
@@ -307,7 +327,7 @@ To workflow can be executed via the following methods:
 1. Trigger the workflow via the GitHub CLI by executing the following command:
 
     ```bash
-    gh auth # (optional - used to authenticate with your GitHub account)
+    gh auth login # (optional - used to authenticate with your GitHub account)
     gh workflow run "Deploy to Kubernetes Service"
     ```
 
@@ -328,3 +348,4 @@ To workflow can be executed via the following methods:
 > [!NOTE]
 >
 > - The `Deploy to Kubernetes Service` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
+> - More information about CI/CD with GitHub Actions is available [here](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
