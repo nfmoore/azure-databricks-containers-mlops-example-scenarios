@@ -12,6 +12,10 @@ The purpose of this section is to describe the steps required to setup each exam
 > - As with all Azure Deployments, this will incur associated costs. Remember to teardown all related resources after use to avoid unnecessary costs.
 > - If you use a GitHub Codespace you may encounter HTTP 403 errors when executing GitHub CLI commands. If you encounter these issues try executing `export GITHUB_TOKEN=` to overwrite the GITHUB_TOKEN environment variable then execute `gh auth login`. Codespaces also uses GITHUB_TOKEN, but the token used is less permissive.
 
+> [!NOTE]
+>
+> - Common setup section should take 25 minutes to complete.
+
 ## Prerequisites
 
 Before implementing this example scenario the following is needed:
@@ -20,9 +24,6 @@ Before implementing this example scenario the following is needed:
 - GitHub account.
 
 ## 1. Common Setup
-
-> [!NOTE]
-> This section should take 25 minutes to complete.
 
 ## 1.1. Create a GitHub repository
 
@@ -262,17 +263,17 @@ To workflow can be executed via the following methods:
    4. Click on the `Run workflow` button.
    5. Click on the `Run workflow` button again to confirm the action.
 
-> [!NOTE]
->
-> - The `Deploy Azure Resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
-> - The service principal is added as an workspace administrator to the Databricks workspace. This same service principal will be used to authenticate with Azure Databricks to create different artefacts such as clusters, jobs, and notebooks. This is present in all GitHub Actions workflows in this repository.
-> - More information about CI/CD with GitHub Actions is available [here](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
-
 After executing these steps you will have deployed all Azure resources required for the example scenarios.
 
 ![GitHub Actions Workflow](./images/setup-05.png)
 
 ![Azure Resources](./images/setup-06.png)
+
+> [!NOTE]
+>
+> - The `Deploy Azure Resources` workflow is configured with a `workflow_dispatch` trigger (a manual process) for illistration purposes only.
+> - The service principal is added as an workspace administrator to the Databricks workspace. This same service principal will be used to authenticate with Azure Databricks to create different artefacts such as clusters, jobs, and notebooks. This is present in all GitHub Actions workflows in this repository.
+> - More information about CI/CD with GitHub Actions is available [here](https://docs.github.com/en/actions/learn-github-actions/understanding-github-actions).
 
 ## 2. Example Sceanrios
 
