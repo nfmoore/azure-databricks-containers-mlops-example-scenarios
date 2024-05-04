@@ -2,15 +2,6 @@
 
 The purpose of this section is to describe the steps required to setup each example scenario.
 
-## Prerequisites
-
-Before implementing this example scenario the following is needed:
-
-- Azure subscription with Owner permissions.
-- GitHub account.
-
-## 1. Common Setup
-
 > [!TIP]
 >
 > - Its recommended to complete the setup using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds) or local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
@@ -20,6 +11,18 @@ Before implementing this example scenario the following is needed:
 >
 > - As with all Azure Deployments, this will incur associated costs. Remember to teardown all related resources after use to avoid unnecessary costs.
 > - If you use a GitHub Codespace you may encounter HTTP 403 errors when executing GitHub CLI commands. If you encounter these issues try executing `export GITHUB_TOKEN=` to overwrite the GITHUB_TOKEN environment variable then execute `gh auth login`. Codespaces also uses GITHUB_TOKEN, but the token used is less permissive.
+
+## Prerequisites
+
+Before implementing this example scenario the following is needed:
+
+- Azure subscription with Owner permissions.
+- GitHub account.
+
+## 1. Common Setup
+
+> [!NOTE]
+> This section should take 25 minutes to complete.
 
 ## 1.1. Create a GitHub repository
 
@@ -32,8 +35,6 @@ Before implementing this example scenario the following is needed:
 > - You can learn more about creating a repository from a template [here](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
 
 ## 1.2. Configure a federated identity credential on a service principal
-
-> [!NOTE] This section should take 5 minutes to complete.
 
 1. Create a Microsoft Entra application by executing the following command:
 
@@ -113,8 +114,6 @@ After executing these steps you will have a federated identity credential on a s
 > - More information about  setting up an Azure Login with OpenID Connect and use it in a GitHub Actions workflow is available [here](https://learn.microsoft.com/azure/developer/github/connect-from-azure?tabs=azure-cli).
 
 ## 1.3. Configure GitHub repository secrets, variables, and environments
-
-> [!NOTE] This section should take 5 minutes to complete.
 
 **Method 1: GitHub CLI**:
 
@@ -236,8 +235,6 @@ After executing these steps you will have configured the GitHub repository with 
 > - More information about using environments for deployments in GitHub Actions is available [here](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment).
 
 ## 1.4. Deploy Azure Resources
-
-> [!NOTE] This section should take 15 minutes to complete.
 
 Execute the `Deploy Azure Resources` workflow to deploy all Azure resources required for the example scenarios.
 
