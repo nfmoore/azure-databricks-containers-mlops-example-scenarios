@@ -305,6 +305,44 @@ To workflow can be executed via the following methods:
    4. Click on the `Run workflow` button.
    5. Click on the `Run workflow` button again to confirm the action.
 
+After executing these steps the `Deploy to Container Apps` workflow will train a model, create a container image, deploy the image to an Azure Container App, and smoke test the deployed model.
+
+After the `Train Model` job completes you will have registered a model in the Databricks workspace.
+
+![Databricks Workspace Job](./images/setup-07.png)
+
+![Databricks Workspace Model](./images/setup-08.png)
+
+After the `Build Container` job and `Staging Deployment` job completes you will have deployed a container image to Azure Container Apps in the `Staging` environment.
+
+You will be prompted to review the deployment before deploying the container to the `Production` environment. Click the `Review deployments` button to give approval and commence the Production job.
+
+![GitHub Actions Workflow](./images/setup-09.png)
+
+After the `Production Deployment` job completes you will have deployed a container image to Azure Container Apps in the `Production` environment.
+
+You can view the Container App in the Azure portal by clicking on the `Container App` resource.
+
+![Container App in Azure Portal](./images/setup-10.png)
+
+By clicking `Application Url` you can view the Swagger UI for [FastAPI](https://fastapi.tiangolo.com) service. This page displays the API endpoints you can consume as part of the service.
+
+![App Swagger UI](./images/setup-11.png)
+
+You can view logs for the Container App by clicking on the `Logs` tab. This will display the logs for the Container App.
+
+For example, you can view model related telemetry by execuring the following Kusto query:
+
+```kql
+ContainerAppConsoleLogs_CL
+| where Log_s has 'credit-default-api'
+| extend Log_s = trim("INFO:root:", Log_s)
+| project TimeGenerated, Data=parse_json(tostring(Log_s))
+| evaluate bag_unpack(Data)
+```
+
+![Container App Logs](./images/setup-12.png)
+
 > [!IMPORTANT]
 >
 > - The `Deploy Azure Resources` workflow is a prerequisite for the `Deploy to Container Apps` workflow.
@@ -338,6 +376,44 @@ To workflow can be executed via the following methods:
    3. Click on the `Deploy to Kubernetes Service` workflow.
    4. Click on the `Run workflow` button.
    5. Click on the `Run workflow` button again to confirm the action.
+
+After executing these steps the `Deploy to Kubernetes Service` workflow will train a model, create a container image, deploy the image to an Azure Kubernetes Service as a deployment, and smoke test the deployed model.
+
+After the `Train Model` job completes you will have registered a model in the Databricks workspace.
+
+![Databricks Workspace Job](./images/setup-07.png)
+
+![Databricks Workspace Model](./images/setup-08.png)
+
+After the `Build Container` job and `Staging Deployment` job completes you will have deployed a container image to Azure Kubernetes Service in the `Staging` environment.
+
+You will be prompted to review the deployment before deploying the container to the `Production` environment. Click the `Review deployments` button to give approval and commence the Production job.
+
+![GitHub Actions Workflow](./images/setup-13.png)
+
+After the `Production Deployment` job completes you will have deployed a container image to Azure Kubernetes Service in the `Production` environment.
+
+You can view the Azure Kubernetes Service deployment in the Azure portal by clicking on the `Kubernetes service` resource.
+
+![Kubernetes Service in Azure Portal](./images/setup-14.png)
+
+By selecting the `Workloads` tab, and clicking on the `External IP` for the `credit-default-api` service you can view the Swagger UI for [FastAPI](https://fastapi.tiangolo.com) service. This page displays the API endpoints you can consume as part of the service.
+
+![Service Swagger UI](./images/setup-15.png)
+
+You can view logs for the service by clicking on the `Logs` tab. This will display the logs for the service.
+
+For example, you can view model related telemetry by execuring the following Kusto query:
+
+```kql
+ContainerLog
+| where LogEntry has 'credit-default-api'
+| extend LogEntry = trim("INFO:root:", LogEntry)
+| project TimeGenerated, Data=parse_json(tostring(LogEntry))
+| evaluate bag_unpack(Data)
+```
+
+![Kubernetes Service Logs](./images/setup-16.png)
 
 > [!IMPORTANT]
 >
