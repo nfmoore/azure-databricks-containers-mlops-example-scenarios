@@ -1,0 +1,333 @@
+name: Deploy to Container Apps
+
+on:
+  # Trigger the workflow manually
+  workflow_dispatch:
+
+  # Trigger the workflow on pull request
+  # pull_request:
+  #   types:
+  #     - opened
+  #     - synchronize
+  #   branches:
+  #     - main
+
+  # Trigger the workflow on push
+  # push:
+  #   branches:
+  #     - main
+
+env:
+  AZ_CLI_VERSION: 2.59.0
+  APP_NAME: creditdefaultapi
+  GITHUB_RUN_ID: ${{ github.run_id }}
+  DEPLOYMENT_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  train:
+    name: Train Model
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+        # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy Databricks Bundle
+      - name: Deploy Databricks Bundle
+        uses: "./.github/templates/deploy-databricks-bundle"
+        with:
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+
+      # Run train model workflow
+      - name: Run workflow
+        working-directory: databricks
+        run: |
+          # Create artifacts directory
+          mkdir train-artifacts
+
+          # Run train model workflow
+          databricks bundle run train_register_model_job --output json > train-artifacts/workflow-output.json
+
+          # Display workflow output
+          cat train-artifacts/workflow-output.json
+
+      # Upload output from workflow run
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: train-artifacts
+          path: databricks/train-artifacts
+          if-no-files-found: error
+
+  containerize:
+    name: Build Container
+    runs-on: ubuntu-latest
+    needs: [train]
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: train-artifacts
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Set up Python
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Install MLFlow
+      - name: Install MLFlow
+        run: |
+          pip install mlflow==2.10.0
+
+        # Set Databricks host and token environment variables and  MLFlow tracking URI
+      - name: Set Databricks environment variables
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            DATABRICKS_WORKSPACE_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              | jq '.[] | select(.type == "Microsoft.Databricks/workspaces") | .name' -r)
+
+            echo "DATABRICKS_HOST=https://$(az databricks workspace show --name $DATABRICKS_WORKSPACE_NAME \
+              --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME | jq '.workspaceUrl' -r)" >> $GITHUB_ENV
+              
+            echo "DATABRICKS_TOKEN=$(az account get-access-token \
+              --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
+
+            echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
+
+      # Set artifact model environment variables
+      - name: Set model variables
+        run: |
+          MODEL_URI=$(jq \
+            '.task_outputs | map(select(.TaskKey | contains("register_model"))) | .[0].Output.result' \
+            workflow-output.json -r)
+
+          echo "MODEL_NAME=$(echo $MODEL_URI | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "MODEL_VERSION=$(echo $MODEL_URI | cut -d'/' -f3)" >> $GITHUB_ENV
+
+      # Download model artifact
+      - name: Download model
+        run: |
+          # Get model artifact uri
+          curl -X GET "$DATABRICKS_HOST/api/2.0/preview/mlflow/model-versions/get-download-uri" \
+            -H "Authorization: Bearer ${DATABRICKS_TOKEN}" \
+            -d '{"name": "'"${MODEL_NAME}"'", "version": "'"${MODEL_VERSION}"'"}' > download-uri.json
+
+          # Display download-uri.json
+          cat download-uri.json
+
+          # Set model artifact uri
+          MODEL_ARTIFACT_URI=$(jq '.artifact_uri' download-uri.json -r)
+
+          # Download model artifacts from databricks
+          mlflow artifacts download --artifact-uri $MODEL_ARTIFACT_URI --dst-path ./app/
+
+          # Create artifacts directory
+          mkdir containerize-artifacts
+
+          # Copy model to artifacts directory
+          cp ./app/model containerize-artifacts/model -r
+
+      # Build and push container image to ACR
+      - name: Build and push container image
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)
+
+            # Log in to ACR
+            az acr login --name $CONTAINER_REGISTRY_NAME -t
+
+            # Build container image
+            az acr build --image $APP_NAME:$GITHUB_RUN_ID --registry $CONTAINER_REGISTRY_NAME ./app
+
+      # Upload model from workflow run
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: containerize-artifacts
+          path: containerize-artifacts
+
+  staging:
+    name: Staging Deployment
+    runs-on: ubuntu-latest
+    needs: [containerize]
+    environment:
+      name: Staging
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Build and push container image to ACR
+      - name: Set resource names
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
+
+            # Get container app environment name
+            echo "CONTAINER_APP_ENVIRONMENT_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.App/managedEnvironments") | select(.tags.environment == "staging") | .name' -r)"  >> $GITHUB_ENV
+
+            # Get user-assigned identity name
+            echo "USER_ASSIGNED_IDENTITY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ManagedIdentity/userAssignedIdentities") | .name' -r)"  >> $GITHUB_ENV
+
+      - name: Deploy container app
+        uses: "./.github/templates/deploy-to-container-app"
+        with:
+          container_app_name: ca01${{ env.APP_NAME }}
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+          container_app_environment_name: ${{ env.CONTAINER_APP_ENVIRONMENT_NAME }}
+          user_assigned_identity_name: ${{ env.USER_ASSIGNED_IDENTITY_NAME }}
+          container_registry_hostname: ${{ env.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
+          artifacts_directory: staging-artifacts
+
+      # Upload model from workflow run
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-artifacts
+          path: staging-artifacts
+          if-no-files-found: error
+
+  test:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: [staging]
+    environment:
+      name: Staging
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: staging-artifacts
+
+      # Smoke test the deployed container app
+      - name: Smoke test
+        run: |
+          # Set the app endpoint
+          CONTAINER_APP_ENDPOINT=$(cat containerapp.json | jq '.properties.latestRevisionFqdn' -r)
+
+          # Exit on error
+          set -e
+
+          # Call the app endpoint
+          STATUS_CODE=$(curl -X POST "https://$CONTAINER_APP_ENDPOINT/predict" \
+            -H 'accept: application/json' \
+            -H 'Content-Type: application/json' \
+            -d @app/sample-request.json \
+            -o response.json \
+            -w "%{http_code}" \
+            -s)
+
+          # Check the status code
+          if [ $STATUS_CODE -ne 200 ]; then
+              echo "Got status code $status instead of expected 200"
+              exit 1
+          fi
+
+          # Display the response
+          cat response.json
+
+  production:
+    name: Production Deployment
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    needs: [staging]
+    environment:
+      name: Production
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Build and push container image to ACR
+      - name: Set resource names
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Get container registry name
+            echo "CONTAINER_REGISTRY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ContainerRegistry/registries") | .name' -r)" >> $GITHUB_ENV
+
+            # Get container app environment name
+            echo "CONTAINER_APP_ENVIRONMENT_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.App/managedEnvironments") | select(.tags.environment == "production") | .name' -r)"  >> $GITHUB_ENV
+
+            # Get user-assigned identity name
+            echo "USER_ASSIGNED_IDENTITY_NAME=$(az resource list --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+                          | jq '.[] | select(.type == "Microsoft.ManagedIdentity/userAssignedIdentities") | .name' -r)"  >> $GITHUB_ENV
+
+      - name: Deploy container app
+        uses: "./.github/templates/deploy-to-container-app"
+        with:
+          container_app_name: ca02${{ env.APP_NAME }}
+          resource_group: ${{ env.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+          container_app_environment_name: ${{ env.CONTAINER_APP_ENVIRONMENT_NAME }}
+          user_assigned_identity_name: ${{ env.USER_ASSIGNED_IDENTITY_NAME }}
+          container_registry_hostname: ${{ env.CONTAINER_REGISTRY_NAME }}.azurecr.io
+          container_image: ${{ env.APP_NAME }}:${{ env.GITHUB_RUN_ID }}
+          artifacts_directory: production-artifacts
+
+      # Upload model from workflow run
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-artifacts
+          path: production-artifacts
+          if-no-files-found: error

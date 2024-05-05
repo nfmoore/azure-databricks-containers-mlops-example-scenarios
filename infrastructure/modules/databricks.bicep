@@ -1,122 +1,77 @@
 //********************************************************
-// General Parameters
+// Parameters
 //********************************************************
 
-@description('Workload Identifier')
-param workloadIdentifier string = substring(uniqueString(resourceGroup().id), 0, 6)
+@description('Name of the Databricks service')
+param name string
 
-@description('Resource Instance')
-param resourceInstance string = '001'
+@description('Managed resource group for the Databricks service')
+param managedResourceGroupName string
 
-@description('Resource Location')
+@description('Location for the Databricks service')
 param location string = resourceGroup().location
 
-//********************************************************
-// Resource Config Parameters
-//********************************************************
+@description('Tags for the Databricks service')
+param tags object = {}
 
-//Azure EventHub Namespace Parameters
-@description('Databricks Workspace Name')
-param databricksWorkspaceName string = 'dbw${workloadIdentifier}${resourceInstance}'
+@description('Role assignments for the Databricks service')
+param roles array = []
 
-@description('Databricks Managed Resource Group Name')
-param databricksManagedResourceGroupName string = '${resourceGroup().name}-dbw-mngd'
-
-@description('The pricing tier of workspace.')
-@allowed([
-  'standard'
-  'premium'
-])
-param pricingTier string = 'standard'
-
-@description('Control Deployment of Data Lake Storage Account')
-param deployDataLakeAccount bool = true
-
-@description('Data Lake Account Name')
-param dataLakeAccountName string = 'st${workloadIdentifier}${resourceInstance}'
-
-@description('Data Lake Storage Account SKU')
-param dataLakeAccountSKU string = 'Standard_LRS'
-
-@description('Data Lake Bronze Zone Container Name')
-param dataLakeBronzeZoneName string = 'raw'
-
-@description('Data Lake Silver Zone Container Name')
-param dataLakeSilverZoneName string = 'trusted'
-
-@description('Data Lake Gold Zone Container Name')
-param dataLakeGoldZoneName string = 'curated'
-
-@description('Data Lake Sandbox Zone Container Name')
-param dataLakeSandboxZoneName string = 'sandbox'
-
-@description('Allow Shared Key Access')
-param allowSharedKeyAccess bool = false
+@description('Log Analytics workspace ID for diagnostics')
+param logAnalyticsWorkspaceId string = ''
 
 //********************************************************
 // Resources
 //********************************************************
 
-// Databricks Workspace
-resource r_databricksWorkspace 'Microsoft.Databricks/workspaces@2018-04-01' = {
-  name: databricksWorkspaceName
-  location: location
-  sku: {
-    name: pricingTier
-  }
-  properties: {
-    managedResourceGroupId: r_databricksManagedResourceGroup.id
-    parameters: {
-      enableNoPublicIp: {
-        value: false
-      }
-    }
-  }
-}
-
-resource r_databricksManagedResourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' existing = {
+resource managedRg 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
   scope: subscription()
-  name: databricksManagedResourceGroupName
+  name: managedResourceGroupName
 }
 
-// Data Lake Storage Account
-resource r_dataLakeStorageAccount 'Microsoft.Storage/storageAccounts@2021-02-01' = if (deployDataLakeAccount == true) {
-  name: dataLakeAccountName
+resource dbwNew 'Microsoft.Databricks/workspaces@2023-02-01' = {
+  name: name
   location: location
+  tags: tags
+  sku: {
+    name: 'premium'
+  }
   properties: {
-    isHnsEnabled: true
-    accessTier: 'Hot'
-    allowBlobPublicAccess: true
-    supportsHttpsTrafficOnly: true
-    allowSharedKeyAccess: allowSharedKeyAccess
-    networkAcls: {
-      defaultAction: 'Allow'
-      bypass: 'AzureServices'
-      resourceAccessRules: [
-        {
-          tenantId: subscription().tenantId
-          resourceId: r_databricksWorkspace.id
-        }
-      ]
+    parameters: {}
+    managedResourceGroupId: managedRg.id
+  }
+}
+
+resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: 'all-logs-all-metrics'
+  scope: dbwNew
+  properties: {
+    workspaceId: logAnalyticsWorkspaceId
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+  }
+}
+
+resource roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for role in roles: {
+    name: guid(name, role.principalId, role.id)
+    scope: dbwNew
+    properties: {
+      roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', role.id)
+      principalId: role.principalId
+      principalType: contains(role, 'type') ? role.type : 'ServicePrincipal'
     }
   }
-  kind: 'StorageV2'
-  sku: {
-    name: dataLakeAccountSKU
-  }
-}
-
-var privateContainerNames = [
-  dataLakeBronzeZoneName
-  dataLakeSilverZoneName
-  dataLakeGoldZoneName
-  dataLakeSandboxZoneName
 ]
-
-resource r_dataLakePrivateContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-02-01' = [for containerName in privateContainerNames: if (deployDataLakeAccount == true) {
-  name: '${r_dataLakeStorageAccount.name}/default/${containerName}'
-}]
 
 //********************************************************
 // Outputs
 //********************************************************
+
+output name string = dbwNew.name
+output id string = dbwNew.id
+output hostname string = dbwNew.properties.workspaceUrl

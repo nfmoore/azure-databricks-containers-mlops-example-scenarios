@@ -1,0 +1,260 @@
+name: Deploy Azure Resources
+
+on:
+  workflow_dispatch:
+
+env:
+  AZ_CLI_VERSION: 2.59.0
+  TEMPLATE_FILE: infrastructure/main.bicep
+  DEPLOYMENT_LOCATION: ${{ vars.DEPLOYMENT_LOCATION }}
+  DEPLOYMENT_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_RESOURCE_GROUP_NAME }}
+  DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME }}
+  DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME: ${{ vars.DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME }}
+  DEPLOY_CONTAINER_APPS: ${{ vars.DEPLOY_CONTAINER_APPS == 'true' }}
+  DEPLOY_KUBERNETES: ${{ vars.DEPLOY_KUBERNETES == 'true' }}
+  GITHUB_RUN_ID: ${{ github.run_id }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Bicep Build
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Checks that all Bicep configuration files adhere to a canonical format
+      - name: Bicep lint
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: az bicep build --file ${TEMPLATE_FILE}
+
+      # Validate whether the template is valid at subscription scope
+      - name: Bicep validate
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            az deployment sub validate \
+              --name validate-${GITHUB_RUN_ID} \
+              --template-file ${TEMPLATE_FILE} \
+              --location ${DEPLOYMENT_LOCATION} \
+              --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
+              --parameters mrgDatabricksName=${DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters mrgKubernetesName=${DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters deployContainerAppsEnvironment=${DEPLOY_CONTAINER_APPS} \
+              --parameters deployKubernetesService=${DEPLOY_KUBERNETES} \
+              --parameters location=${DEPLOYMENT_LOCATION}
+
+  deploy:
+    name: Bicep Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+        # Deploy template to subscription
+      - name: Bicep deploy
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            # Create artifacts directory
+            mkdir artifacts
+
+            # Deploy the Bicep template
+            az deployment sub create \
+              --name validate-${DEPLOYMENT_NAME} \
+              --template-file ${TEMPLATE_FILE} \
+              --location ${DEPLOYMENT_LOCATION} \
+              --parameters resourceGroupName=${DEPLOYMENT_RESOURCE_GROUP_NAME} \
+              --parameters mrgDatabricksName=${DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters mrgKubernetesName=${DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME} \
+              --parameters deployContainerAppsEnvironment=${DEPLOY_CONTAINER_APPS} \
+              --parameters deployKubernetesService=${DEPLOY_KUBERNETES} \
+              --parameters location=${DEPLOYMENT_LOCATION} \
+              > artifacts/deployment-output.json
+
+      # Upload output from deployment
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: artifacts
+
+  databricks-setup:
+    name: Databricks Setup
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Set Databricks host and token environment variables
+      - name: Set Databricks environment variables
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            echo "DATABRICKS_HOST=https://$(jq .properties.outputs.databricksHostname.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+              
+            echo "DATABRICKS_TOKEN=$(az account get-access-token \
+              --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
+
+      # Install the Databricks CLI
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+      # Configure the Databricks CLI
+      - name: Databricks CLI config
+        run: |
+          cat > ~/.databrickscfg << EOF 
+          [DEFAULT] 
+          host = $DATABRICKS_HOST
+          token = $DATABRICKS_TOKEN
+          EOF
+
+      # Create Databricks cluster
+      - name: Create Databricks cluster
+        run: |
+          # Create artifacts directory
+          mkdir artifacts
+
+          # Create Databricks cluster
+          curl -X POST "$DATABRICKS_HOST/api/2.0/clusters/create" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            -d '{
+                "num_workers": 0,
+                "cluster_name": "default",
+                "spark_version": "14.3.x-cpu-ml-scala2.12",
+                "spark_conf": {
+                    "spark.master": "local[*, 4]",
+                    "spark.databricks.cluster.profile": "singleNode"
+                },
+                "azure_attributes": {
+                    "first_on_demand": 1,
+                    "availability": "ON_DEMAND_AZURE",
+                    "spot_bid_max_price": -1
+                },
+                "node_type_id": "Standard_D4ads_v5",
+                "driver_node_type_id": "Standard_D4ads_v5",
+                "autotermination_minutes": 60,
+                "enable_elastic_disk": true,
+                "enable_local_disk_encryption": false,
+                "runtime_engine": "STANDARD"
+            }' > artifacts/cluster-output.json
+            
+            # Display cluster output
+            cat artifacts/cluster-output.json
+
+      # Set Databricks cluster id environment variable
+      - name: Set Databricks clister id
+        run: |
+          echo "DATABRICKS_CLUSTER_ID=$(jq .cluster_id artifacts/cluster-output.json -r)" >> $GITHUB_ENV
+
+      # Upload files to DBFS
+      - name: Upload data to dbfs
+        run: |
+          databricks fs mkdir dbfs:/FileStore/data/credit-card-default-uci-curated
+          databricks fs cp -r databricks/data/curated.csv dbfs:/FileStore/data/credit-card-default-uci-curated/01.csv
+
+      # Trigger notebook to create external tables
+      - name: Create external tables
+        uses: databricks/run-notebook@v0
+        with:
+          databricks-host: ${{ env.DATABRICKS_HOST }}
+          databricks-token: ${{ env.DATABRICKS_TOKEN }}
+          existing-cluster-id: ${{ env.DATABRICKS_CLUSTER_ID }}
+          local-notebook-path: databricks/src/00-create-external-table.ipynb
+          notebook-params-json: >
+            {
+              "path": "dbfs:/FileStore/data/credit-card-default-uci-curated"
+            }
+
+  kubernetes-setup:
+    name: Kubernetes Setup
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: ${{ vars.DEPLOY_KUBERNETES == 'true' }}
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Download output from deployment
+      - uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+
+      # Authenticate to Az CLI using OIDC
+      - name: Azure CLI login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Set Kubernetes Service and Container Registry environment variables
+      - name: Set environment variables
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            echo "KUBERNETES_SERVICE_STAGING=$(jq .properties.outputs.kubernetesServiceStagingName.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+
+            echo "KUBERNETES_SERVICE_PRODUCTION=$(jq .properties.outputs.kubernetesServiceProductionName.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+              
+            echo "CONTAINER_REGISTRY=$(jq .properties.outputs.containerRegistryName.value \
+              deployment-output.json -r)" >> $GITHUB_ENV
+
+      # Attach ACR to AKS
+      - name: Attach ACR to AKS
+        uses: azure/cli@v2
+        with:
+          azcliversion: ${{ env.AZ_CLI_VERSION }}
+          inlineScript: |
+            az aks update --name $KUBERNETES_SERVICE_STAGING --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              --attach-acr $CONTAINER_REGISTRY
+            az aks update --name $KUBERNETES_SERVICE_PRODUCTION --resource-group $DEPLOYMENT_RESOURCE_GROUP_NAME \
+              --attach-acr $CONTAINER_REGISTRY

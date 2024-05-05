@@ -1,0 +1,97 @@
+name: Deploy to Container App
+
+description: This workflow deploys a container to an Azure Container App.
+
+inputs:
+  container_app_name:
+    description: The name of the container app resource.
+    required: true
+
+  resource_group:
+    description: The resource group where the container app is deployed.
+    required: true
+
+  container_app_environment_name:
+    description: The name of the container app environment resource.
+    required: true
+
+  user_assigned_identity_name:
+    description: The name of the user-assigned identity to use for the container app.
+    required: true
+
+  container_registry_hostname:
+    description: The hostname of the container registry server.
+    required: true
+
+  container_image:
+    description: The container image to deploy.
+    required: true
+
+  target_port:
+    description: The port to expose on the container app.
+    required: false
+    default: "5000"
+
+  revision_suffix:
+    description: The suffix to append to the container app revision.
+    required: false
+    default: ${{ github.run_id }}
+
+  artifacts_directory:
+    description: The directory where the deployment artifacts are stored.
+    required: false
+    default: "artifacts"
+
+runs:
+  using: "composite"
+
+  steps:
+    # Add Azure Container Apps CLI extension
+    - name: Add Container Apps extension
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          # Add container apps extension
+          az extension add --name containerapp
+
+    # Get id of the user-assigned identity
+    - name: Get identity ID
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          echo "USER_ASSIGNED_IDENTITY_ID=$(az identity show --resource-group ${{ inputs.resource_group }} \
+            --name ${{ inputs.user_assigned_identity_name }} | jq '.id' -r)" >> $GITHUB_ENV
+
+    # Deploy the container app
+    - name: Deploy container app
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          # Create artifacts directory
+          mkdir ${{ inputs.artifacts_directory }}
+
+          # Check if container app exists
+          if az containerapp show --name ${{ inputs.container_app_name }} --resource-group ${{ inputs.resource_group }} &> /dev/null; then
+              echo "Container app exists. Executing code to update existing app..."
+              az containerapp update \
+                --name ${{ inputs.container_app_name }} \
+                --resource-group ${{ inputs.resource_group }} \
+                --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
+                --revision-suffix ${{ inputs.revision_suffix }} > ${{ inputs.artifacts_directory }}/containerapp.json
+          else
+              echo "Container app does not exist. Executing code to create new app..."
+              az containerapp create \
+                --name ${{ inputs.container_app_name }} \
+                --resource-group ${{ inputs.resource_group }} \
+                --environment ${{ inputs.container_app_environment_name }} \
+                --user-assigned $USER_ASSIGNED_IDENTITY_ID \
+                --registry-identity $USER_ASSIGNED_IDENTITY_ID \
+                --registry-server ${{ inputs.container_registry_hostname }} \
+                --image ${{ inputs.container_registry_hostname }}/${{ inputs.container_image }} \
+                --target-port ${{ inputs.target_port }} \
+                --ingress 'external' \
+                --revision-suffix ${{ inputs.revision_suffix }} > ${{ inputs.artifacts_directory }}/containerapp.json
+          fi

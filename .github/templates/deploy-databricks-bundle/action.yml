@@ -1,0 +1,80 @@
+name: Deploy Databricks Bundle
+
+description: This workflow deploys a Databricks bundle to an Azure Databricks workspace.
+
+inputs:
+  resource_group:
+    description: The resource group where the container app is deployed.
+    required: true
+  
+  bundle_config_file:
+    description: The path to the Databricks bundle configuration file.
+    required: false
+    default: databricks/databricks.yml
+
+  bundle_directory:
+    description: The directory where the Databricks bundle is stored.
+    required: false
+    default: databricks
+
+runs:
+  using: "composite"
+
+  steps:
+
+    # Add Databricks Azure CLI extension
+    - name: Add Databricks extension
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          # Add databricks extension
+          az extension add --name databricks
+
+      # Set Databricks host and token environment variables and  MLFlow tracking URI
+    - name: Set Databricks environment variables
+      uses: azure/cli@v2
+      with:
+        azcliversion: ${{ env.AZ_CLI_VERSION }}
+        inlineScript: |
+          DATABRICKS_WORKSPACE_NAME=$(az resource list --resource-group ${{ inputs.resource_group }} \
+            | jq '.[] | select(.type == "Microsoft.Databricks/workspaces") | .name' -r)
+
+          echo "DATABRICKS_HOST=https://$(az databricks workspace show --name $DATABRICKS_WORKSPACE_NAME \
+            --resource-group ${{ inputs.resource_group }} | jq '.workspaceUrl' -r)" >> $GITHUB_ENV
+            
+          echo "DATABRICKS_TOKEN=$(az account get-access-token \
+            --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d | jq .accessToken -r)" >> $GITHUB_ENV
+
+          echo "MLFLOW_TRACKING_URI=databricks" >> $GITHUB_ENV
+
+    # Add host to databricks.yml
+    - name: Add databricks host
+      shell: bash
+      run: |
+        yq -i '.workspace.host = "'"${DATABRICKS_HOST}"'"' ${{ inputs.bundle_config_file }}
+        cat ${{ inputs.bundle_config_file }}
+
+    # Install the Databricks CLI
+    - name: Install Databricks CLI
+      shell: bash
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+    # Configure the Databricks CLI
+    - name: Databricks CLI config
+      shell: bash
+      run: |
+        cat > ~/.databrickscfg << EOF 
+        [DEFAULT] 
+        host = $DATABRICKS_HOST
+        token = $DATABRICKS_TOKEN
+        EOF
+
+    # Deploy Databricks Bundle
+    - name: Deploy bundle
+      working-directory: ${{ inputs.bundle_directory }}
+      shell: bash
+      run: |
+        databricks bundle validate
+        databricks bundle deploy

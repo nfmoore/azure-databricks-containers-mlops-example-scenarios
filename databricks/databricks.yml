@@ -1,0 +1,8 @@
+bundle:
+  name: azure_databricks_containers_mlops_example_scenarios
+
+include:
+  - resources/*.yml
+
+workspace:
+  host: <your-databricks-host>
