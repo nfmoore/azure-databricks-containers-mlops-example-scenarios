@@ -4,12 +4,16 @@ The purpose of this section is to describe the steps required to setup each exam
 
 > [!TIP]
 >
-> - Its recommended to complete the setup using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds) or local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
+> - The following options are recommended to complete the setup:
+>   1. Using the [Azure Cloud Shell](https://learn.microsoft.com/azure/cloud-shell/overview) within the Azure Portal.
+>   2. Using a [GitHub Codespace](https://docs.github.com/en/codespaces/prebuilding-your-codespaces/about-github-codespaces-prebuilds)
+>   3. Using your local VSCode environment with the environment specified in the [development container](https://docs.github.com/en/codespaces/setting-up-your-project-for-codespaces/adding-a-dev-container-configuration/introduction-to-dev-containers). This will be the most efficient way to complete the setup.
 > - The example scenarios are designed to be executed in sequence.
 
 > [!WARNING]
 >
 > - As with all Azure Deployments, this will incur associated costs. Remember to teardown all related resources after use to avoid unnecessary costs.
+> - If you use the Azure Cloud Shell you may need to update the version of the GitHub CLI.
 > - If you use a GitHub Codespace you may encounter HTTP 403 errors when executing GitHub CLI commands. If you encounter these issues try executing `export GITHUB_TOKEN=` to overwrite the GITHUB_TOKEN environment variable then execute `gh auth login`. Codespaces also uses GITHUB_TOKEN, but the token used is less permissive.
 
 > [!NOTE]
@@ -152,11 +156,11 @@ After executing these steps you will have a federated identity credential on a s
     export DEPLOY_KUBERNETES=true # requred to deploy Azure Kubernetes Service for the Kubernetes Service scenario
 
     # set GitHub repository variables
-    gh variable set  DEPLOYMENT_LOCATION --body "$DEPLOYMENT_LOCATION"
-    gh variable set  DEPLOYMENT_RESOURCE_GROUP_NAME --body "$DEPLOYMENT_RESOURCE_GROUP_NAME"
-    gh variable set  DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME --body "$DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME"
-    gh variable set  DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME --body "$DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME"
-    gh variable set  DEPLOY_KUBERNETES --body true
+    gh variable set DEPLOYMENT_LOCATION --body "$DEPLOYMENT_LOCATION"
+    gh variable set DEPLOYMENT_RESOURCE_GROUP_NAME --body "$DEPLOYMENT_RESOURCE_GROUP_NAME"
+    gh variable set DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME --body "$DEPLOYMENT_DATARBICKS_MANAGED_RESOURCE_GROUP_NAME"
+    gh variable set DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME --body "$DEPLOYMENT_KUBERNETES_MANAGED_RESOURCE_GROUP_NAME"
+    gh variable set DEPLOY_KUBERNETES --body true
     gh variable set DEPLOY_CONTAINER_APPS  --body true
     ```
 
