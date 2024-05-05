@@ -1,7 +1,21 @@
 name: Deploy to Kubernetes Service
 
 on:
+  # Trigger the workflow manually
   workflow_dispatch:
+
+  # Trigger the workflow on pull request
+  # pull_request:
+  #   types:
+  #     - opened
+  #     - synchronize
+  #   branches:
+  #     - main
+
+  # Trigger the workflow on push
+  # push:
+  #   branches:
+  #     - main
 
 env:
   AZ_CLI_VERSION: 2.59.0
@@ -258,6 +272,7 @@ jobs:
 
   production:
     name: Production Deployment
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     needs: [staging]
     environment:
