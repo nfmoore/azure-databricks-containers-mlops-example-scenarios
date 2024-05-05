@@ -11,8 +11,8 @@ This approach is best suited for:
 - Preference to deploy models as containers on infrastructure other than Azure Databricks.
 - Need to use machine learning models in remote locations or edge devices with limited connectivity to Azure Databricks.
 
-> ![Note]
->
+> ![NOTE]
+> 
 > - Databricks Model Serving is a Databricks-native appraoch to deploying models. This appraoch is less flexible than deploying models as containers, but it is easier to use and manage.
 > - This approach is not recommended for batch inference scenarios.
 
