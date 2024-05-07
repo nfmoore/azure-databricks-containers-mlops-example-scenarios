@@ -10,6 +10,6 @@ psutil==5.9.0
 cloudpickle==2.0.0
 joblib==1.2.0
 numpy==1.23.5
-pandas==1.5.3
+pandas==2.2.2
 scikit-learn==1.1.1
 typing-extensions==4.8.0
