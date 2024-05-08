@@ -14,7 +14,7 @@ All example scenarios will focus on classical machine learning problems. An adap
 
 ### Setup
 
-Detailed instructions for deploying this proof-of-concept are outlined in the [Step-by-Step Setup](.github/docs/step-by-step.md) section of this repository. This proof-of-concept will illustrate how to:
+Detailed instructions for deploying this proof-of-concept are outlined in the [Step-by-Step Setup](.github/docs/step-by-step-setup.md) section of this repository. This proof-of-concept will illustrate how to:
 
 - Build a machine learning model on Azure Databricks.
 - Containerize the machine learning model.
@@ -30,6 +30,8 @@ This proof-of-concept will cover the following example scenarios:
 | ---------------- | ----------- |
 | Azure Container Apps | Build a machine learning model on Azure Databricks, containerize it, and deploy it as a web service using Azure Container Apps. |
 | Azure Kubernetes Service | Build a machine learning model on Azure Databricks, containerize it, and deploy it as a web service using Azure Kubernetes Service. |
+
+For more information on the example scenarios are outlined in the [Getting Started](.github/docs/getting-started.md) section of this repository.
 
 ## :balance_scale: License
 
