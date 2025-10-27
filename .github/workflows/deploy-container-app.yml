@@ -65,7 +65,7 @@ jobs:
 
       # Upload output from workflow run
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: train-artifacts
           path: databricks/train-artifacts
@@ -171,7 +171,7 @@ jobs:
 
       # Upload model from workflow run
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: containerize-artifacts
           path: containerize-artifacts
@@ -226,7 +226,7 @@ jobs:
 
       # Upload model from workflow run
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: staging-artifacts
           path: staging-artifacts
@@ -326,7 +326,7 @@ jobs:
 
       # Upload model from workflow run
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: production-artifacts
           path: production-artifacts
